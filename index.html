@@ -1,0 +1,897 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>טיימר של 3 דקות</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17324d;
+        --muted: #496172;
+        --sky: #bfe8ff;
+        --mint: #96dcc0;
+        --peach: #ffb47c;
+        --lemon: #ffd85c;
+        --berry: #d95d7f;
+        --paper: #fffaf0;
+        --shadow: 0 22px 55px rgba(22, 42, 70, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background:
+          linear-gradient(180deg, rgba(191, 232, 255, 0.88), rgba(255, 250, 240, 0.82) 58%),
+          radial-gradient(circle at 18% 16%, rgba(255, 216, 92, 0.5), transparent 24%),
+          linear-gradient(135deg, #e4f5ff, #fff2dc);
+        overflow-x: hidden;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .page {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 18px 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        font-size: clamp(1.05rem, 3vw, 1.35rem);
+      }
+
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--lemon);
+        border: 4px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 10px 20px rgba(199, 126, 28, 0.22);
+        flex: 0 0 auto;
+      }
+
+      .sound-toggle {
+        min-height: 44px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 16px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        box-shadow: 0 8px 18px rgba(39, 71, 93, 0.12);
+        cursor: pointer;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+        gap: clamp(24px, 5vw, 58px);
+        align-items: center;
+        padding: 14px 0 44px;
+      }
+
+      .intro {
+        display: grid;
+        gap: 22px;
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 9ch;
+        font-size: clamp(3.3rem, 10vw, 7rem);
+        line-height: 0.92;
+        letter-spacing: 0;
+      }
+
+      .lead {
+        margin: 0;
+        max-width: 32rem;
+        color: var(--muted);
+        font-size: clamp(1.15rem, 2.7vw, 1.55rem);
+        line-height: 1.35;
+        font-weight: 650;
+      }
+
+      .time-picker {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(74px, 1fr));
+        gap: 10px;
+        max-width: 520px;
+      }
+
+      .time-choice {
+        min-height: 62px;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        box-shadow: 0 10px 18px rgba(39, 71, 93, 0.12);
+        cursor: pointer;
+        font-size: clamp(1rem, 2.8vw, 1.24rem);
+        font-weight: 950;
+      }
+
+      .time-choice[aria-pressed="true"] {
+        background: var(--lemon);
+        box-shadow:
+          inset 0 0 0 4px rgba(255, 255, 255, 0.85),
+          0 12px 22px rgba(199, 126, 28, 0.2);
+      }
+
+      .minute-row {
+        display: grid;
+        grid-template-columns: repeat(var(--block-count, 3), minmax(78px, 1fr));
+        gap: 12px;
+        max-width: 430px;
+      }
+
+      .minute-block {
+        min-height: 106px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.75);
+        border: 4px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 12px 24px rgba(33, 71, 104, 0.12);
+        transition:
+          transform 250ms ease,
+          filter 250ms ease,
+          opacity 250ms ease;
+      }
+
+      .minute-block::before {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: var(--fill, 100%);
+        background: var(--tone);
+        transition: height 400ms linear;
+      }
+
+      .minute-block.done {
+        transform: translateY(-2px);
+      }
+
+      .minute-label {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        gap: 2px;
+        color: #123047;
+        text-align: center;
+        font-weight: 950;
+      }
+
+      .minute-label strong {
+        font-size: 2.7rem;
+        line-height: 1;
+      }
+
+      .minute-label span {
+        font-size: 1rem;
+      }
+
+      .timer-stage {
+        background: rgba(255, 255, 255, 0.72);
+        border: 4px solid rgba(255, 255, 255, 0.72);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: clamp(18px, 4vw, 34px);
+        display: grid;
+        gap: 22px;
+      }
+
+      .visual {
+        min-height: clamp(290px, 46vw, 430px);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, #a7dcff 0 54%, #85d49b 54% 100%);
+      }
+
+      .cloud {
+        position: absolute;
+        width: 100px;
+        height: 36px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        top: 32px;
+        left: 10%;
+        box-shadow:
+          32px -12px 0 8px rgba(255, 255, 255, 0.9),
+          62px 0 0 2px rgba(255, 255, 255, 0.9);
+      }
+
+      .cloud.two {
+        top: 78px;
+        left: auto;
+        right: 8%;
+        transform: scale(0.82);
+        opacity: 0.82;
+      }
+
+      .finish-scene {
+        position: absolute;
+        width: clamp(86px, 15vw, 138px);
+        height: clamp(92px, 16vw, 142px);
+        right: 7%;
+        top: 12%;
+        z-index: 3;
+      }
+
+      .house {
+        position: absolute;
+        left: 8%;
+        bottom: 0;
+        width: 64%;
+        height: 52%;
+        border-radius: 8px 8px 6px 6px;
+        background: #fff7df;
+        box-shadow: inset 0 -8px 0 rgba(233, 166, 82, 0.22);
+      }
+
+      .house::before {
+        content: "";
+        position: absolute;
+        left: 12%;
+        right: 12%;
+        top: -48%;
+        height: 70%;
+        background: var(--peach);
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      }
+
+      .house::after {
+        content: "";
+        position: absolute;
+        width: 22%;
+        height: 34%;
+        left: 39%;
+        bottom: 0;
+        border-radius: 6px 6px 0 0;
+        background: var(--ink);
+      }
+
+      .finish-flag {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 44%;
+        height: 60%;
+      }
+
+      .finish-flag::before {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 8px;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--ink);
+      }
+
+      .finish-flag::after {
+        content: "";
+        position: absolute;
+        right: 8px;
+        top: 6px;
+        width: 44px;
+        height: 30px;
+        border-radius: 6px 0 0 6px;
+        background:
+          linear-gradient(45deg, #ffffff 25%, transparent 25% 50%, #ffffff 50% 75%, transparent 75%),
+          var(--ink);
+        background-size: 18px 18px;
+      }
+
+      .road-map {
+        position: absolute;
+        inset: 8% 5% 12%;
+        width: 90%;
+        height: 80%;
+        overflow: visible;
+        z-index: 1;
+      }
+
+      .road-shadow,
+      .road-base,
+      .road-progress,
+      .road-dashes {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .road-shadow {
+        stroke: rgba(28, 65, 82, 0.18);
+        stroke-width: 52;
+        transform: translateY(8px);
+      }
+
+      .road-base {
+        stroke: #f6efe4;
+        stroke-width: 44;
+      }
+
+      .road-progress {
+        stroke: var(--lemon);
+        stroke-width: 30;
+        stroke-dasharray: 100;
+        stroke-dashoffset: var(--road-left, 100);
+        transition: stroke-dashoffset 500ms linear;
+      }
+
+      .road-dashes {
+        stroke: rgba(23, 50, 77, 0.38);
+        stroke-width: 6;
+        stroke-dasharray: 2 14;
+      }
+
+      .road-stations {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .station {
+        position: absolute;
+        width: clamp(34px, 7vw, 52px);
+        height: clamp(34px, 7vw, 52px);
+        left: var(--x);
+        bottom: var(--y);
+        transform: translate(-50%, 50%);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+        border: 5px solid var(--tone);
+        color: var(--ink);
+        font-weight: 950;
+        box-shadow: 0 10px 18px rgba(26, 66, 86, 0.18);
+      }
+
+      .station.done {
+        background: var(--tone);
+      }
+
+      .runner {
+        position: absolute;
+        left: var(--runner-left, 8%);
+        bottom: var(--runner-bottom, 16%);
+        width: clamp(70px, 13vw, 108px);
+        height: clamp(46px, 8vw, 72px);
+        transform: translateX(-50%);
+        transition:
+          left 500ms linear,
+          bottom 500ms linear;
+        filter: drop-shadow(0 13px 12px rgba(19, 54, 77, 0.24));
+        z-index: 4;
+      }
+
+      .runner-body {
+        position: absolute;
+        left: 6%;
+        right: 6%;
+        bottom: 18%;
+        height: 56%;
+        border-radius: 18px 22px 14px 14px;
+        background: var(--berry);
+        box-shadow: inset 0 -10px 0 rgba(117, 32, 62, 0.18);
+      }
+
+      .runner-body::before {
+        content: "";
+        position: absolute;
+        left: 22%;
+        top: -48%;
+        width: 42%;
+        height: 58%;
+        border-radius: 16px 16px 6px 6px;
+        background: #ffdf8e;
+        box-shadow: 34px 18px 0 -12px rgba(255, 255, 255, 0.92);
+      }
+
+      .runner-body::after {
+        content: "";
+        position: absolute;
+        right: 11%;
+        top: 34%;
+        width: 13%;
+        height: 16%;
+        border-radius: 999px;
+        background: var(--lemon);
+      }
+
+      .runner-wheel {
+        position: absolute;
+        width: 25%;
+        aspect-ratio: 1;
+        bottom: 5%;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle, #ffffff 0 25%, transparent 26%),
+          var(--ink);
+        border: 3px solid #1a3b58;
+      }
+
+      .runner-wheel.one {
+        right: 14%;
+      }
+
+      .runner-wheel.two {
+        left: 14%;
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .time {
+        min-width: 178px;
+        border-radius: 8px;
+        background: var(--ink);
+        color: white;
+        text-align: center;
+        padding: 12px 18px 16px;
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        line-height: 1;
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .status {
+        margin: 0;
+        font-size: clamp(1.3rem, 3.5vw, 2.35rem);
+        line-height: 1.12;
+        font-weight: 950;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .control {
+        min-height: 64px;
+        border: 0;
+        border-radius: 8px;
+        color: #112f47;
+        background: #ffffff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: clamp(1.1rem, 3vw, 1.35rem);
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(39, 71, 93, 0.14);
+      }
+
+      .control.primary {
+        background: var(--mint);
+      }
+
+      .control:active,
+      .sound-toggle:active {
+        transform: translateY(2px);
+      }
+
+      .icon {
+        width: 1.35em;
+        height: 1.35em;
+        display: inline-block;
+      }
+
+      .finished .visual {
+        animation: celebrate 900ms ease-in-out infinite alternate;
+      }
+
+      .finished .runner {
+        animation: bounce 520ms ease-in-out infinite alternate;
+      }
+
+      @keyframes bounce {
+        from {
+          transform: translateX(-50%) translateY(0);
+        }
+        to {
+          transform: translateX(-50%) translateY(-14px);
+        }
+      }
+
+      @keyframes celebrate {
+        from {
+          filter: saturate(1);
+        }
+        to {
+          filter: saturate(1.25) brightness(1.03);
+        }
+      }
+
+      @media (max-width: 790px) {
+        header {
+          padding-top: 12px;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+          align-items: start;
+          padding-top: 8px;
+        }
+
+        .intro {
+          gap: 16px;
+        }
+
+        h1 {
+          max-width: 11ch;
+        }
+
+        .lead {
+          font-size: 1.12rem;
+        }
+
+        .time-picker {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .timer-stage {
+          padding: 14px;
+        }
+
+        .readout {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .time {
+          min-width: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page" id="app">
+      <header>
+        <div class="brand" aria-label="טיימר של שלוש דקות">
+          <div class="brand-mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.5" />
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <span>טיימר קטן</span>
+        </div>
+        <button class="sound-toggle" id="soundToggle" type="button">צליל בסוף: פעיל</button>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="title">
+          <h1 id="title">3 דקות</h1>
+          <p class="lead" id="lead">כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.</p>
+
+          <div class="time-picker" aria-label="בחירת זמן לטיימר">
+            <button class="time-choice" type="button" data-seconds="10" aria-pressed="false">10 שניות</button>
+            <button class="time-choice" type="button" data-seconds="30" aria-pressed="false">חצי דקה</button>
+            <button class="time-choice" type="button" data-seconds="60" aria-pressed="false">דקה</button>
+            <button class="time-choice" type="button" data-seconds="120" aria-pressed="false">2 דקות</button>
+            <button class="time-choice" type="button" data-seconds="180" aria-pressed="true">3 דקות</button>
+          </div>
+
+          <div class="minute-row" aria-label="שלוש דקות מחולקות לשלושה חלקים">
+          </div>
+        </section>
+
+        <section class="timer-stage" aria-label="טיימר פעיל">
+          <div class="visual" id="visual">
+            <div class="cloud"></div>
+            <div class="cloud two"></div>
+            <div class="finish-scene" aria-hidden="true">
+              <div class="finish-flag"></div>
+              <div class="house"></div>
+            </div>
+            <svg class="road-map" viewBox="0 0 900 420" aria-hidden="true" preserveAspectRatio="none">
+              <path class="road-shadow" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
+              <path class="road-base" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
+              <path class="road-progress" pathLength="100" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
+              <path class="road-dashes" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
+            </svg>
+            <div class="road-stations" aria-hidden="true">
+            </div>
+            <div class="runner" aria-hidden="true">
+              <div class="runner-body"></div>
+              <div class="runner-wheel one"></div>
+              <div class="runner-wheel two"></div>
+            </div>
+          </div>
+
+          <div class="readout">
+            <div class="time" id="time" aria-live="polite">3:00</div>
+            <p class="status" id="status">מוכנים להתחיל?</p>
+          </div>
+
+          <div class="controls">
+            <button class="control primary" id="startPause" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5.2v13.6c0 .8.9 1.3 1.6.8l9.6-6.8c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 3.9 8 4.4 8 5.2Z" />
+              </svg>
+              <span>התחלה</span>
+            </button>
+            <button class="control" id="reset" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 8a8 8 0 1 1 1 9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+                <path d="M5 4v4h4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>מהתחלה</span>
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const options = {
+        10: { title: "10 שניות", lead: "מסלול קצרצר. המכונית מגיעה לדגל ממש מהר.", blocks: ["10"], aria: "עשר שניות" },
+        30: { title: "חצי דקה", lead: "קובייה אחת קצרה. כשהיא מתמלאת, הזמן נגמר.", blocks: ["חצי"], aria: "חצי דקה" },
+        60: { title: "דקה", lead: "קובייה אחת היא דקה אחת. כשהיא מתמלאת, הזמן נגמר.", blocks: ["1"], aria: "דקה אחת" },
+        120: { title: "2 דקות", lead: "כל קובייה היא דקה אחת. כשהשתיים מתמלאות, הזמן נגמר.", blocks: ["1", "2"], aria: "שתי דקות מחולקות לשני חלקים" },
+        180: { title: "3 דקות", lead: "כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.", blocks: ["1", "2", "3"], aria: "שלוש דקות מחולקות לשלושה חלקים" },
+      };
+
+      const app = document.querySelector("#app");
+      const visual = document.querySelector("#visual");
+      const titleEl = document.querySelector("#title");
+      const leadEl = document.querySelector("#lead");
+      const timeEl = document.querySelector("#time");
+      const statusEl = document.querySelector("#status");
+      const startPause = document.querySelector("#startPause");
+      const reset = document.querySelector("#reset");
+      const soundToggle = document.querySelector("#soundToggle");
+      const timeChoices = [...document.querySelectorAll(".time-choice")];
+      const blockRow = document.querySelector(".minute-row");
+      const roadStations = document.querySelector(".road-stations");
+
+      let totalSeconds = 180;
+      let remaining = totalSeconds;
+      let running = false;
+      let timerId = null;
+      let soundOn = true;
+
+      const startIcon = `
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.2v13.6c0 .8.9 1.3 1.6.8l9.6-6.8c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 3.9 8 4.4 8 5.2Z" />
+        </svg><span>התחלה</span>`;
+      const pauseIcon = `
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M7 5h3.5v14H7V5Zm6.5 0H17v14h-3.5V5Z" />
+        </svg><span>עצירה</span>`;
+
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${String(secs).padStart(2, "0")}`;
+      }
+
+      function blockWord(count) {
+        if (count === 1) return "חלק אחד";
+        if (count === 2) return "שני חלקים";
+        return "שלושה חלקים";
+      }
+
+      function roadPoint(progress) {
+        const curve = Math.sin(progress * Math.PI * 2) * 7;
+        return {
+          x: 8 + progress * 78,
+          y: 14 + progress * 55 + curve,
+        };
+      }
+
+      function renderBlocks() {
+        const option = options[totalSeconds];
+        blockRow.style.setProperty("--block-count", option.blocks.length);
+        blockRow.setAttribute("aria-label", option.aria);
+        blockRow.innerHTML = option.blocks
+          .map((label, index) => {
+            const tone = ["var(--mint)", "var(--peach)", "var(--lemon)"][index] || "var(--mint)";
+            const text = label === "10" ? "שניות" : label === "חצי" ? "דקה" : Number(label) === 1 ? "דקה" : "דקות";
+            return `
+              <div class="minute-block" style="--tone: ${tone}; --fill: 0%" data-minute="${index}">
+                <div class="minute-label">
+                  <strong>${label}</strong>
+                  <span>${text}</span>
+                </div>
+              </div>`;
+          })
+          .join("");
+      }
+
+      function renderStations() {
+        const option = options[totalSeconds];
+        roadStations.innerHTML = option.blocks
+          .map((label, index) => {
+            const tone = ["var(--mint)", "var(--peach)", "var(--lemon)"][index] || "var(--mint)";
+            const point = roadPoint((index + 1) / option.blocks.length);
+            return `<div class="station" style="--x: ${point.x}%; --y: ${point.y}%; --tone: ${tone}" data-station="${index}">${label}</div>`;
+          })
+          .join("");
+      }
+
+      function setDuration(seconds) {
+        stopTimer();
+        totalSeconds = seconds;
+        remaining = totalSeconds;
+
+        const option = options[seconds];
+        titleEl.textContent = option.title;
+        leadEl.textContent = option.lead;
+        timeChoices.forEach((choice) => {
+          choice.setAttribute("aria-pressed", String(Number(choice.dataset.seconds) === seconds));
+        });
+        renderBlocks();
+        renderStations();
+        update();
+      }
+
+      function playDoneSound() {
+        if (!soundOn) return;
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        [523.25, 659.25, 783.99].forEach((frequency, index) => {
+          const oscillator = ctx.createOscillator();
+          const gain = ctx.createGain();
+          oscillator.frequency.value = frequency;
+          oscillator.type = "sine";
+          gain.gain.setValueAtTime(0, ctx.currentTime + index * 0.14);
+          gain.gain.linearRampToValueAtTime(0.16, ctx.currentTime + index * 0.14 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + index * 0.14 + 0.28);
+          oscillator.connect(gain).connect(ctx.destination);
+          oscillator.start(ctx.currentTime + index * 0.14);
+          oscillator.stop(ctx.currentTime + index * 0.14 + 0.3);
+        });
+      }
+
+      function update() {
+        const progress = remaining / totalSeconds;
+        const elapsed = 1 - progress;
+        const carPoint = roadPoint(elapsed);
+        visual.style.setProperty("--road-left", `${100 - elapsed * 100}`);
+        visual.style.setProperty("--runner-left", `${carPoint.x}%`);
+        visual.style.setProperty("--runner-bottom", `${carPoint.y}%`);
+        timeEl.textContent = formatTime(remaining);
+
+        const blocks = [...document.querySelectorAll(".minute-block")];
+        const elapsedSeconds = totalSeconds - remaining;
+        const blockSeconds = totalSeconds / blocks.length;
+        blocks.forEach((block, index) => {
+          const blockStart = index * blockSeconds;
+          const fill = Math.min(100, Math.max(0, ((elapsedSeconds - blockStart) / blockSeconds) * 100));
+          block.style.setProperty("--fill", `${fill}%`);
+          block.classList.toggle("done", fill === 100);
+        });
+
+        const stations = [...document.querySelectorAll(".station")];
+        stations.forEach((station, index) => {
+          station.classList.toggle("done", elapsed >= (index + 1) / stations.length);
+        });
+
+        if (remaining === totalSeconds) {
+          statusEl.textContent = "מוכנים להתחיל?";
+        } else if (remaining === 0) {
+          statusEl.textContent = "נגמר! כל הכבוד.";
+        } else if (remaining <= 10) {
+          statusEl.textContent = "כמעט סיימנו.";
+        } else {
+          const totalBlocks = options[totalSeconds].blocks.length;
+          const blocksLeft = Math.max(1, Math.ceil((remaining / totalSeconds) * totalBlocks));
+          statusEl.textContent = blocksLeft === 1 ? "נשאר חלק אחד." : `נשארו ${blockWord(blocksLeft)}.`;
+        }
+
+        app.classList.toggle("finished", remaining === 0);
+      }
+
+      function stopTimer() {
+        running = false;
+        window.clearInterval(timerId);
+        timerId = null;
+        startPause.innerHTML = startIcon;
+      }
+
+      function startTimer() {
+        if (remaining === 0) remaining = totalSeconds;
+        running = true;
+        startPause.innerHTML = pauseIcon;
+        update();
+        timerId = window.setInterval(() => {
+          remaining = Math.max(0, remaining - 1);
+          update();
+          if (remaining === 0) {
+            stopTimer();
+            playDoneSound();
+          }
+        }, 1000);
+      }
+
+      startPause.addEventListener("click", () => {
+        if (running) {
+          stopTimer();
+          statusEl.textContent = "עצרנו רגע.";
+          return;
+        }
+        startTimer();
+      });
+
+      reset.addEventListener("click", () => {
+        stopTimer();
+        remaining = totalSeconds;
+        update();
+      });
+
+      timeChoices.forEach((choice) => {
+        choice.addEventListener("click", () => {
+          setDuration(Number(choice.dataset.seconds));
+        });
+      });
+
+      soundToggle.addEventListener("click", () => {
+        soundOn = !soundOn;
+        soundToggle.textContent = soundOn ? "צליל בסוף: פעיל" : "צליל בסוף: כבוי";
+      });
+
+      renderStations();
+      renderBlocks();
+      update();
+    </script>
+  </body>
+</html>

@@ -129,7 +129,15 @@
         max-width: 520px;
       }
 
-      .time-choice {
+      .mode-picker {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 10px;
+        max-width: 430px;
+      }
+
+      .time-choice,
+      .mode-choice {
         min-height: 62px;
         border: 0;
         border-radius: 8px;
@@ -141,7 +149,8 @@
         font-weight: 950;
       }
 
-      .time-choice[aria-pressed="true"] {
+      .time-choice[aria-pressed="true"],
+      .mode-choice[aria-pressed="true"] {
         background: var(--lemon);
         box-shadow:
           inset 0 0 0 4px rgba(255, 255, 255, 0.85),
@@ -248,42 +257,86 @@
         position: absolute;
         width: clamp(86px, 15vw, 138px);
         height: clamp(92px, 16vw, 142px);
-        right: 7%;
-        top: 12%;
+        right: 5%;
+        bottom: 28%;
         z-index: 3;
       }
 
-      .house {
+      .bed,
+      .bath {
         position: absolute;
-        left: 8%;
+        left: 0;
         bottom: 0;
-        width: 64%;
+        width: 76%;
         height: 52%;
-        border-radius: 8px 8px 6px 6px;
+      }
+
+      .bed {
+        display: none;
+        border-radius: 8px;
+        background: #8f7bd8;
+        box-shadow: inset 0 -9px 0 rgba(41, 32, 92, 0.18);
+      }
+
+      .bed::before {
+        content: "";
+        position: absolute;
+        right: 6%;
+        top: 12%;
+        width: 30%;
+        height: 38%;
+        border-radius: 8px;
         background: #fff7df;
-        box-shadow: inset 0 -8px 0 rgba(233, 166, 82, 0.22);
       }
 
-      .house::before {
+      .bed::after {
         content: "";
         position: absolute;
-        left: 12%;
-        right: 12%;
-        top: -48%;
-        height: 70%;
-        background: var(--peach);
-        clip-path: polygon(50% 0, 100% 100%, 0 100%);
-      }
-
-      .house::after {
-        content: "";
-        position: absolute;
-        width: 22%;
-        height: 34%;
-        left: 39%;
-        bottom: 0;
-        border-radius: 6px 6px 0 0;
+        left: -3%;
+        right: -3%;
+        bottom: -12%;
+        height: 16%;
+        border-radius: 999px;
         background: var(--ink);
+      }
+
+      .bath {
+        display: none;
+        height: 48%;
+        border-radius: 12px 12px 32px 32px;
+        background: #ffffff;
+        box-shadow:
+          inset 0 -12px 0 rgba(99, 171, 201, 0.26),
+          0 8px 0 rgba(23, 50, 77, 0.12);
+      }
+
+      .bath::before {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 18%;
+        height: 28%;
+        border-radius: 999px;
+        background: #8edcff;
+      }
+
+      .bath::after {
+        content: "";
+        position: absolute;
+        right: 10%;
+        top: -36%;
+        width: 16%;
+        height: 46%;
+        border: 8px solid var(--ink);
+        border-left: 0;
+        border-bottom: 0;
+        border-radius: 0 24px 0 0;
+      }
+
+      .mode-sleep .bed,
+      .mode-bath .bath {
+        display: block;
       }
 
       .finish-flag {
@@ -321,9 +374,9 @@
 
       .road-map {
         position: absolute;
-        inset: 8% 5% 12%;
+        inset: 42% 5% 16%;
         width: 90%;
-        height: 80%;
+        height: 30%;
         overflow: visible;
         z-index: 1;
       }
@@ -340,7 +393,7 @@
       .road-shadow {
         stroke: rgba(28, 65, 82, 0.18);
         stroke-width: 52;
-        transform: translateY(8px);
+        transform: translateY(10px);
       }
 
       .road-base {
@@ -393,69 +446,112 @@
       .runner {
         position: absolute;
         left: var(--runner-left, 8%);
-        bottom: var(--runner-bottom, 16%);
-        width: clamp(70px, 13vw, 108px);
-        height: clamp(46px, 8vw, 72px);
+        bottom: 20%;
+        width: clamp(58px, 10vw, 86px);
+        height: clamp(92px, 16vw, 132px);
         transform: translateX(-50%);
-        transition:
-          left 500ms linear,
-          bottom 500ms linear;
+        transition: left 500ms linear;
         filter: drop-shadow(0 13px 12px rgba(19, 54, 77, 0.24));
         z-index: 4;
       }
 
-      .runner-body {
+      .kid-head {
         position: absolute;
-        left: 6%;
-        right: 6%;
-        bottom: 18%;
-        height: 56%;
-        border-radius: 18px 22px 14px 14px;
-        background: var(--berry);
-        box-shadow: inset 0 -10px 0 rgba(117, 32, 62, 0.18);
-      }
-
-      .runner-body::before {
-        content: "";
-        position: absolute;
-        left: 22%;
-        top: -48%;
-        width: 42%;
-        height: 58%;
-        border-radius: 16px 16px 6px 6px;
-        background: #ffdf8e;
-        box-shadow: 34px 18px 0 -12px rgba(255, 255, 255, 0.92);
-      }
-
-      .runner-body::after {
-        content: "";
-        position: absolute;
-        right: 11%;
-        top: 34%;
-        width: 13%;
-        height: 16%;
-        border-radius: 999px;
-        background: var(--lemon);
-      }
-
-      .runner-wheel {
-        position: absolute;
-        width: 25%;
+        width: 38%;
         aspect-ratio: 1;
-        bottom: 5%;
         border-radius: 50%;
-        background:
-          radial-gradient(circle, #ffffff 0 25%, transparent 26%),
-          var(--ink);
-        border: 3px solid #1a3b58;
+        left: 31%;
+        top: 2%;
+        background: #ffd39c;
+        box-shadow: inset -5px -4px 0 rgba(151, 86, 42, 0.14);
       }
 
-      .runner-wheel.one {
-        right: 14%;
+      .kid-head::before,
+      .kid-head::after {
+        content: "";
+        position: absolute;
+        top: 38%;
+        width: 10%;
+        height: 10%;
+        border-radius: 50%;
+        background: var(--ink);
       }
 
-      .runner-wheel.two {
-        left: 14%;
+      .kid-head::before {
+        right: 32%;
+      }
+
+      .kid-head::after {
+        left: 32%;
+      }
+
+      .kid-body {
+        position: absolute;
+        width: 46%;
+        height: 36%;
+        left: 27%;
+        top: 36%;
+        border-radius: 18px 18px 12px 12px;
+        background: var(--berry);
+        box-shadow: inset 0 -8px 0 rgba(117, 32, 62, 0.16);
+      }
+
+      .mode-bath .kid-body {
+        background: #28a7d8;
+      }
+
+      .kid-arm,
+      .kid-leg {
+        position: absolute;
+        width: 10%;
+        border-radius: 999px;
+        background: var(--ink);
+        transform-origin: top center;
+      }
+
+      .kid-arm {
+        height: 30%;
+        top: 42%;
+      }
+
+      .kid-arm.one {
+        right: 20%;
+        transform: rotate(28deg);
+      }
+
+      .kid-arm.two {
+        left: 20%;
+        transform: rotate(-28deg);
+      }
+
+      .kid-leg {
+        height: 31%;
+        top: 68%;
+      }
+
+      .kid-leg.one {
+        right: 34%;
+        transform: rotate(17deg);
+      }
+
+      .kid-leg.two {
+        left: 34%;
+        transform: rotate(-17deg);
+      }
+
+      .kid-label {
+        position: absolute;
+        top: -14%;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: max-content;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        font-size: clamp(0.72rem, 1.7vw, 0.95rem);
+        font-weight: 900;
+        box-shadow: 0 8px 14px rgba(25, 65, 87, 0.14);
       }
 
       .readout {
@@ -575,6 +671,10 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        .mode-picker {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .timer-stage {
           padding: 14px;
         }
@@ -602,7 +702,7 @@
     </style>
   </head>
   <body>
-    <div class="page" id="app">
+    <div class="page mode-sleep" id="app">
       <header>
         <div class="brand" aria-label="טיימר של שלוש דקות">
           <div class="brand-mark" aria-hidden="true">
@@ -629,6 +729,11 @@
             <button class="time-choice" type="button" data-seconds="180" aria-pressed="true">3 דקות</button>
           </div>
 
+          <div class="mode-picker" aria-label="בחירת מצב לטיימר">
+            <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true">מצב שינה</button>
+            <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false">מצב אמבטיה</button>
+          </div>
+
           <div class="minute-row" aria-label="שלוש דקות מחולקות לשלושה חלקים">
           </div>
         </section>
@@ -639,26 +744,33 @@
             <div class="cloud two"></div>
             <div class="finish-scene" aria-hidden="true">
               <div class="finish-flag"></div>
-              <div class="house"></div>
+              <div class="bed"></div>
+              <div class="bath"></div>
             </div>
             <svg class="road-map" viewBox="0 0 900 420" aria-hidden="true" preserveAspectRatio="none">
-              <path class="road-shadow" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
-              <path class="road-base" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
-              <path class="road-progress" pathLength="100" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
-              <path class="road-dashes" d="M80 330 C205 230 300 382 430 292 S650 154 790 106" />
+              <path class="road-shadow" d="M80 250 L790 250" />
+              <path class="road-base" d="M80 250 L790 250" />
+              <path class="road-progress" pathLength="100" d="M80 250 L790 250" />
+              <path class="road-dashes" d="M80 250 L790 250" />
             </svg>
             <div class="road-stations" aria-hidden="true">
             </div>
             <div class="runner" aria-hidden="true">
-              <div class="runner-body"></div>
-              <div class="runner-wheel one"></div>
-              <div class="runner-wheel two"></div>
+              <div class="kid-label" id="kidLabel">למיטה</div>
+              <div class="kid-head"></div>
+              <div class="kid-body"></div>
+              <div class="kid-arm one"></div>
+              <div class="kid-arm two"></div>
+              <div class="kid-leg one"></div>
+              <div class="kid-leg two"></div>
             </div>
           </div>
 
           <div class="readout">
             <div class="time" id="time" aria-live="polite">3:00</div>
-            <p class="status" id="status">מוכנים להתחיל?</p>
+            <div>
+              <p class="status" id="status">מוכנים להתחיל?</p>
+            </div>
           </div>
 
           <div class="controls">
@@ -682,11 +794,28 @@
 
     <script>
       const options = {
-        10: { title: "10 שניות", lead: "מסלול קצרצר. המכונית מגיעה לדגל ממש מהר.", blocks: ["10"], aria: "עשר שניות" },
+        10: { title: "10 שניות", lead: "מסלול קצרצר. מגיעים לדגל ממש מהר.", blocks: ["10"], aria: "עשר שניות" },
         30: { title: "חצי דקה", lead: "קובייה אחת קצרה. כשהיא מתמלאת, הזמן נגמר.", blocks: ["חצי"], aria: "חצי דקה" },
         60: { title: "דקה", lead: "קובייה אחת היא דקה אחת. כשהיא מתמלאת, הזמן נגמר.", blocks: ["1"], aria: "דקה אחת" },
         120: { title: "2 דקות", lead: "כל קובייה היא דקה אחת. כשהשתיים מתמלאות, הזמן נגמר.", blocks: ["1", "2"], aria: "שתי דקות מחולקות לשני חלקים" },
         180: { title: "3 דקות", lead: "כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.", blocks: ["1", "2", "3"], aria: "שלוש דקות מחולקות לשלושה חלקים" },
+      };
+
+      const modes = {
+        sleep: {
+          label: "למיטה",
+          lead: "עכשיו הולכים לאט לאט למיטה.",
+          ready: "מוכנים ללכת למיטה?",
+          done: "הגענו למיטה. לילה טוב.",
+          almost: "כמעט במיטה.",
+        },
+        bath: {
+          label: "לאמבטיה",
+          lead: "עכשיו הולכים לאט לאט לאמבטיה.",
+          ready: "מוכנים ללכת לאמבטיה?",
+          done: "הגענו לאמבטיה. כל הכבוד.",
+          almost: "כמעט באמבטיה.",
+        },
       };
 
       const app = document.querySelector("#app");
@@ -699,14 +828,19 @@
       const reset = document.querySelector("#reset");
       const soundToggle = document.querySelector("#soundToggle");
       const timeChoices = [...document.querySelectorAll(".time-choice")];
+      const modeChoices = [...document.querySelectorAll(".mode-choice")];
       const blockRow = document.querySelector(".minute-row");
       const roadStations = document.querySelector(".road-stations");
+      const kidLabel = document.querySelector("#kidLabel");
 
       let totalSeconds = 180;
       let remaining = totalSeconds;
+      let currentMode = "sleep";
       let running = false;
       let timerId = null;
       let soundOn = true;
+      let audioCtx = null;
+      let audioUnlocked = false;
 
       const startIcon = `
         <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -730,10 +864,9 @@
       }
 
       function roadPoint(progress) {
-        const curve = Math.sin(progress * Math.PI * 2) * 7;
         return {
           x: 8 + progress * 78,
-          y: 14 + progress * 55 + curve,
+          y: 24,
         };
       }
 
@@ -767,27 +900,77 @@
           .join("");
       }
 
+      function refreshCopy() {
+        const option = options[totalSeconds];
+        const mode = modes[currentMode];
+        titleEl.textContent = option.title;
+        leadEl.textContent = `${option.lead} ${mode.lead}`;
+        kidLabel.textContent = mode.label;
+      }
+
       function setDuration(seconds) {
         stopTimer();
         totalSeconds = seconds;
         remaining = totalSeconds;
 
-        const option = options[seconds];
-        titleEl.textContent = option.title;
-        leadEl.textContent = option.lead;
         timeChoices.forEach((choice) => {
           choice.setAttribute("aria-pressed", String(Number(choice.dataset.seconds) === seconds));
         });
+        refreshCopy();
         renderBlocks();
         renderStations();
         update();
       }
 
-      function playDoneSound() {
-        if (!soundOn) return;
+      function setMode(modeName) {
+        stopTimer();
+        currentMode = modeName;
+        remaining = totalSeconds;
+        app.classList.toggle("mode-sleep", currentMode === "sleep");
+        app.classList.toggle("mode-bath", currentMode === "bath");
+        modeChoices.forEach((choice) => {
+          choice.setAttribute("aria-pressed", String(choice.dataset.mode === modeName));
+        });
+        refreshCopy();
+        update();
+      }
+
+      function getAudioContext() {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        if (!AudioContext) return null;
+        if (!audioCtx) audioCtx = new AudioContext();
+        return audioCtx;
+      }
+
+      async function unlockSound() {
+        if (!soundOn || audioUnlocked) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.03);
+        audioUnlocked = true;
+      }
+
+      async function playDoneSound() {
+        if (!soundOn) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        if ("vibrate" in navigator) {
+          navigator.vibrate([180, 80, 180]);
+        }
+
         [523.25, 659.25, 783.99].forEach((frequency, index) => {
           const oscillator = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -808,7 +991,6 @@
         const carPoint = roadPoint(elapsed);
         visual.style.setProperty("--road-left", `${100 - elapsed * 100}`);
         visual.style.setProperty("--runner-left", `${carPoint.x}%`);
-        visual.style.setProperty("--runner-bottom", `${carPoint.y}%`);
         timeEl.textContent = formatTime(remaining);
 
         const blocks = [...document.querySelectorAll(".minute-block")];
@@ -827,11 +1009,11 @@
         });
 
         if (remaining === totalSeconds) {
-          statusEl.textContent = "מוכנים להתחיל?";
+          statusEl.textContent = modes[currentMode].ready;
         } else if (remaining === 0) {
-          statusEl.textContent = "נגמר! כל הכבוד.";
+          statusEl.textContent = modes[currentMode].done;
         } else if (remaining <= 10) {
-          statusEl.textContent = "כמעט סיימנו.";
+          statusEl.textContent = modes[currentMode].almost;
         } else {
           const totalBlocks = options[totalSeconds].blocks.length;
           const blocksLeft = Math.max(1, Math.ceil((remaining / totalSeconds) * totalBlocks));
@@ -849,6 +1031,7 @@
       }
 
       function startTimer() {
+        unlockSound();
         if (remaining === 0) remaining = totalSeconds;
         running = true;
         startPause.innerHTML = pauseIcon;
@@ -884,11 +1067,21 @@
         });
       });
 
+      modeChoices.forEach((choice) => {
+        choice.addEventListener("click", () => {
+          setMode(choice.dataset.mode);
+        });
+      });
+
       soundToggle.addEventListener("click", () => {
         soundOn = !soundOn;
         soundToggle.textContent = soundOn ? "צליל בסוף: פעיל" : "צליל בסוף: כבוי";
+        if (soundOn) unlockSound();
       });
 
+      document.addEventListener("pointerdown", unlockSound, { once: true });
+
+      refreshCopy();
       renderStations();
       renderBlocks();
       update();

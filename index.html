@@ -1,410 +1,1090 @@
-{{
-    config(
-        database=env_var("DBT_DWH_DATA_PROJECT"),
-        schema="dwh",
-        materialized=var("materialized_incremental"),
-        incremental_strategy=var("incremental_strategy_merge"),
-        unique_key=["sk"],
-        persist_docs=var("persist_docs_dict"),
-        partition_by = var("partitiontime_dict"),
-        on_schema_change=env_var("DBT_ON_SCHEMA_CHANGE"),
-        tags=["not_active", "P1", "daily", "marketing"],
-    )
-}}
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>טיימר של 3 דקות</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17324d;
+        --muted: #496172;
+        --sky: #bfe8ff;
+        --mint: #96dcc0;
+        --peach: #ffb47c;
+        --lemon: #ffd85c;
+        --berry: #d95d7f;
+        --paper: #fffaf0;
+        --shadow: 0 22px 55px rgba(22, 42, 70, 0.18);
+      }
 
--- Configuration variables for events, attribution windows, and entities
-{% set event_types = ["send", "click", "open"] %}
-{% set attribution_days = [3, 7, 14] %}
-{% set entities = [
-    {'name': 'orders', 'table': 'orders', 'id': 'order_id', 'date': 'order_date'},
-    {'name': 'briefs', 'table': 'briefs', 'id': 'brief_id', 'date': 'brief_date'},
-    {'name': 'completed_orders', 'table': 'completed_orders', 'id': 'order_id', 'date': 'order_completed_date'},
-    {'name': 'seller_plus', 'table': 'seller_plus', 'id': 'payment_id', 'date': 'payment_date'},
-    {'name': 'promoted_listing', 'table': 'promoted_listing', 'id': 'payment_id', 'date': 'payment_date'},
-    {'name': 'contract_orders', 'table': 'contract_orders', 'id': 'contract_id', 'date': 'contract_date'}
-] %}
+      * {
+        box-sizing: border-box;
+      }
 
--- Base-level retention events
-with
-    {% if is_incremental() %} agg_retention as (select * from {{ this }} where date(_partitiontime) < {{ var("pt") }}), {% endif %}
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color: var(--ink);
+        background:
+          linear-gradient(180deg, rgba(191, 232, 255, 0.88), rgba(255, 250, 240, 0.82) 58%),
+          radial-gradient(circle at 18% 16%, rgba(255, 216, 92, 0.5), transparent 24%),
+          linear-gradient(135deg, #e4f5ff, #fff2dc);
+        overflow-x: hidden;
+      }
 
-    -- Fetch base retention metrics (sends, opens, clicks) per user/campaign step
-    calc_base as (
-        select
-            user_id as user_id
-            ,user_type as user_type
-            ,canvas_or_campaign_id as canvas_or_campaign_id
-            ,canvas_or_campaign_name as canvas_or_campaign_name
-            ,canvas_step_id as canvas_step_id
-            ,canvas_step_name as canvas_step_name
-            ,automation_name as automation_name
-            ,retention_create_date as retention_create_date
-            ,email_flag as email_flag
-            ,sends as sends
-            ,opens as opens
-            ,clicks as clicks
-            ,control_group as control_group
-            ,unsubscribes as unsubscribes
-            ,delivery as delivery
-            ,sk as sk
-            ,date(user_level_campaign_send_date) as user_level_campaign_send_date
-            ,date(user_level_campaign_open_date) as user_level_campaign_open_date
-            ,date(user_level_campaign_click_date) as user_level_campaign_click_date
+      button {
+        font: inherit;
+      }
 
-        from {{ ref("calc_retention") }} as b
-        {% if is_incremental() %}
-            where
-                date(_PARTITIONTIME) = {{ var("pt") }}
-                or (
+      .page {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
 
-                    date(user_level_campaign_send_date) between date({{ var("pt") }}) - 13 and date({{ var("pt") }})
-                    or date(user_level_campaign_open_date) between date({{ var("pt") }}) - 13 and date({{ var("pt") }})
-                    or date(user_level_campaign_click_date) between date({{ var("pt") }}) - 13 and date({{ var("pt") }})
-                )
-        {% endif %}
-    )
+      header {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 18px 0 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
 
-    -- Fetch raw activity data for attribution (orders, briefs, etc.)
-    ,orders as (
-        select 
-            buyer_id as buyer_id
-            ,order_id as order_id
-            ,date(created_at) as order_date
-            ,reward_promo_code as reward_promo_code
-            ,order_amount as amount
-        from {{ ref("stg_order_success") }}
-        where
-            {% if is_incremental() %} date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and buyer_id in (select distinct user_id from calc_base)
-    )
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 900;
+        font-size: clamp(1.05rem, 3vw, 1.35rem);
+      }
 
-    ,briefs as (
-        select 
-            buyer_id as buyer_id
-            ,brief_id as brief_id
-            ,date(created_at) as brief_date
-        from {{ ref("dim_dynamic_brief") }}
-        where is_created = 1
-            {% if is_incremental() %} and date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} and date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and buyer_id in (select distinct user_id from calc_base)
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--lemon);
+        border: 4px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 10px 20px rgba(199, 126, 28, 0.22);
+        flex: 0 0 auto;
+      }
 
-    )
+      .sound-toggle {
+        min-height: 44px;
+        border: 0;
+        border-radius: 999px;
+        padding: 0 16px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        box-shadow: 0 8px 18px rgba(39, 71, 93, 0.12);
+        cursor: pointer;
+      }
 
-    ,completed_orders as (
-        select 
-            buyer_id as buyer_id
-            ,order_id as order_id
-            ,date(created_at) as order_completed_date
-            ,reward_promo_code as reward_promo_code
-            ,`order`.amount as amount
-        from {{ ref("dim_orders") }}
-        where lower(event_type) = 'order.completed'
-            {% if is_incremental() %} and date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} and date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and buyer_id in (select distinct user_id from calc_base)
-    )
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+        gap: clamp(24px, 5vw, 58px);
+        align-items: center;
+        padding: 14px 0 44px;
+      }
 
-    ,seller_plus as (
-        select 
-            user_id as buyer_id
-            ,payment_token as payment_id
-            ,date(created_at) as payment_date
-            ,payment_session_product_amount_gross_amount as amount
-        from {{ ref("stg_payments") }}
-        where lower(type) = 'payment_success'
-            and payment_session_product_type = 'seller_plus'
-            {% if is_incremental() %} and date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} and date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and user_id in (select distinct user_id from calc_base)
-    )
+      .intro {
+        display: grid;
+        gap: 22px;
+      }
 
-    ,promoted_listing as (
-        select 
-            user_id as buyer_id
-            ,payment_token as payment_id
-            ,date(created_at) as payment_date
-            ,payment_session_product_amount_gross_amount as amount
-        from {{ ref("stg_payments") }}
-        where lower(type) = 'payment_success'
-            and payment_session_product_type = 'PromotedListings'
-            {% if is_incremental() %} and date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} and date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and user_id in (select distinct user_id from calc_base)
-    )
+      h1 {
+        margin: 0;
+        max-width: 9ch;
+        font-size: clamp(3.3rem, 10vw, 7rem);
+        line-height: 0.92;
+        letter-spacing: 0;
+      }
 
-    ,contract_orders as (
-        select 
-            buyer_id as buyer_id
-            ,contract_id as contract_id
-            ,date(created_at) as contract_date
-            ,0 as amount
-        from {{ ref("dim_contract") }}
-        where 1=1
-            {% if is_incremental() %} and date(created_at) between date_sub(date({{ var("pt") }}), interval 30 day) and date({{ var("pt") }})
-            {% else %} and date(created_at) between date('2024-01-01') and date({{ var("pt") }}) {% endif %}
-            and buyer_id in (select distinct user_id from calc_base)
-    )
+      .lead {
+        margin: 0;
+        max-width: 32rem;
+        color: var(--muted);
+        font-size: clamp(1.15rem, 2.7vw, 1.55rem);
+        line-height: 1.35;
+        font-weight: 650;
+      }
 
-    {% for entity in entities %}
-        {% for event in event_types %} 
+      .time-picker {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(74px, 1fr));
+        gap: 10px;
+        max-width: 520px;
+      }
 
-        -- Identify specific entity actions attributed to campaign events within a 14-day window
-        ,{{ entity.name }}_attributed_to_{{ event }} as (
-            select
-                e.buyer_id as user_id
-                ,e.{{ entity.id }} as {{ entity.id }}
-                ,e.{{ entity.date }} as {{ entity.date }}
-                {% if entity.name != 'briefs' %} ,e.amount as amount {% endif %}
-                {% if entity.name in ['orders', 'completed_orders'] %} ,e.reward_promo_code as reward_promo_code {% endif %}
-                ,cb.canvas_or_campaign_id as canvas_or_campaign_id
-                ,cb.canvas_step_id as canvas_step_id
-                ,cb.user_level_campaign_{{ event }}_date as base_date
-            from calc_base as cb
-            join {{ entity.table }} as e on e.buyer_id = cb.user_id
-                and cb.user_level_campaign_{{ event }}_date is not null
-                and e.{{ entity.date }} between cb.user_level_campaign_{{ event }}_date 
-                                        and date_add(cb.user_level_campaign_{{ event }}_date, interval 13 day)
-            qualify row_number() over (partition by e.{{ entity.id }} order by cb.user_level_campaign_{{ event }}_date desc) = 1
-        )
+      .mode-picker {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        gap: 10px;
+        max-width: 430px;
+      }
 
-        -- Aggregate attributed actions and revenue over 3, 7, and 14-day windows
-        ,attr_{{ entity.name }}_{{ event }} as (
-            select
-                user_id as user_id
-                ,canvas_or_campaign_id as canvas_or_campaign_id
-                ,canvas_step_id as canvas_step_id
-                {% for day in attribution_days %}
-                ,count(distinct case when {{ entity.date }} <= date_add(base_date, interval {{ day - 1 }} day) then {{ entity.id }} end) as {{ entity.name }}_{{ day }}days_after{{ event }}
-                {% if entity.name != 'briefs' %}
-                ,sum(case when {{ entity.date }} <= date_add(base_date, interval {{ day - 1 }} day) then amount end) as {{ 'completed_' if entity.name == 'completed_orders' else '' }}revenue_{{ day }}days_after{{ event }}
-                {% endif %}
-                {% endfor %}
-            from {{ entity.name }}_attributed_to_{{ event }}
-            group by all
-        )
-        {% endfor %}
-    {% endfor %}
-    
-    {% for event in event_types %}
-    -- Collect promo codes used within 14 days of an event
-    ,attr_coupons_{{ event }} as (
-        select 
-            user_id as user_id
-            ,canvas_or_campaign_id as canvas_or_campaign_id
-            ,canvas_step_id as canvas_step_id
-            ,array_agg(distinct reward_promo_code ignore nulls) as reward_promo_codes_14days_after{{ event }}
-        from (
-            select user_id, canvas_or_campaign_id, canvas_step_id, reward_promo_code from orders_attributed_to_{{ event }}
-            union all
-            select user_id, canvas_or_campaign_id, canvas_step_id, reward_promo_code from completed_orders_attributed_to_{{ event }}
-        ) where reward_promo_code is not null
-        group by all
-    )
-    {% endfor %}
-  
-    
+      .time-choice,
+      .mode-choice {
+        min-height: 62px;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.78);
+        color: var(--ink);
+        box-shadow: 0 10px 18px rgba(39, 71, 93, 0.12);
+        cursor: pointer;
+        font-size: clamp(1rem, 2.8vw, 1.24rem);
+        font-weight: 950;
+      }
 
-{% if is_incremental() %}
-    -- Insert new records not present in the target table
-     ,new_rows as (
-        select
-            cb.sk as sk
-            ,cb.user_id as user_id
-            ,cb.user_type as user_type
-            ,cb.canvas_or_campaign_id as canvas_or_campaign_id
-            ,cb.canvas_or_campaign_name as canvas_or_campaign_name
-            ,cb.canvas_step_id as canvas_step_id
-            ,cb.canvas_step_name as canvas_step_name
-            ,cb.automation_name as automation_name
-            ,cb.retention_create_date as retention_create_date
-            ,cb.user_level_campaign_send_date as user_level_campaign_send_date
-            ,cb.user_level_campaign_open_date as user_level_campaign_open_date
-            ,cb.user_level_campaign_click_date as user_level_campaign_click_date
+      .time-choice[aria-pressed="true"],
+      .mode-choice[aria-pressed="true"] {
+        background: var(--lemon);
+        box-shadow:
+          inset 0 0 0 4px rgba(255, 255, 255, 0.85),
+          0 12px 22px rgba(199, 126, 28, 0.2);
+      }
 
-            ,cb.sends as sends
-            ,cb.opens as opens
-            ,cb.clicks as clicks
-            ,cb.control_group as control_group
-            ,cb.unsubscribes as unsubscribes
-            ,cb.delivery as delivery
-            
-            {% for event in event_types %}
-                {% for day in attribution_days %}
-                ,ifnull(attr_orders_{{ event }}.orders_{{ day }}days_after{{ event }}, 0) as orders_{{ day }}days_after{{ event }}
-                ,ifnull(attr_briefs_{{ event }}.briefs_{{ day }}days_after{{ event }}, 0) as briefs_{{ day }}days_after{{ event }}
-                ,ifnull(attr_completed_orders_{{ event }}.completed_orders_{{ day }}days_after{{ event }}, 0) as completed_orders_{{ day }}days_after{{ event }}
-                ,ifnull(attr_seller_plus_{{ event }}.seller_plus_{{ day }}days_after{{ event }}, 0) as seller_plus_{{ day }}days_after{{ event }}
-                ,ifnull(attr_promoted_listing_{{ event }}.promoted_listing_{{ day }}days_after{{ event }}, 0) as promoted_listing_{{ day }}days_after{{ event }}
-                ,ifnull(attr_contract_orders_{{ event }}.contract_orders_{{ day }}days_after{{ event }}, 0) as contract_orders_{{ day }}days_after{{ event }}
-                {% endfor %}
-                ,attr_coupons_{{ event }}.reward_promo_codes_14days_after{{ event }} as reward_promo_codes_14days_after{{ event }}
-                ,ifnull(attr_orders_{{ event }}.revenue_14days_after{{ event }}, 0) as revenue_14days_after{{ event }}
-                ,ifnull(attr_completed_orders_{{ event }}.completed_revenue_14days_after{{ event }}, 0) as completed_revenue_14days_after{{ event }}
-                ,ifnull(attr_seller_plus_{{ event }}.revenue_14days_after{{ event }}, 0) as seller_plus_revenue_14days_after{{ event }}
-                ,ifnull(attr_promoted_listing_{{ event }}.revenue_14days_after{{ event }}, 0) as promoted_listing_revenue_14days_after{{ event }}
-                ,ifnull(attr_contract_orders_{{ event }}.revenue_14days_after{{ event }}, 0) as contract_orders_revenue_14days_after{{ event }}
-            {% endfor %}
-            ,{{ var("pt") }} as _PARTITIONTIME
-        from calc_base as cb
-        {% for event in event_types %}
-            left join attr_orders_{{ event }} on cb.user_id = attr_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_briefs_{{ event }} on cb.user_id = attr_briefs_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_briefs_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_briefs_{{ event }}.canvas_step_id, 'null')
-            left join attr_completed_orders_{{ event }} on cb.user_id = attr_completed_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_completed_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_completed_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_seller_plus_{{ event }} on cb.user_id = attr_seller_plus_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_seller_plus_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_seller_plus_{{ event }}.canvas_step_id, 'null')
-            left join attr_promoted_listing_{{ event }} on cb.user_id = attr_promoted_listing_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_promoted_listing_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_promoted_listing_{{ event }}.canvas_step_id, 'null')
-            left join attr_contract_orders_{{ event }} on cb.user_id = attr_contract_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_contract_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_contract_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_coupons_{{ event }} on cb.user_id = attr_coupons_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_coupons_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_coupons_{{ event }}.canvas_step_id, 'null')
-        {% endfor %}
-        left join agg_retention as ar on cb.sk = ar.sk
-        where ar.sk is null
-    )
+      .minute-row {
+        display: grid;
+        grid-template-columns: repeat(var(--block-count, 3), minmax(78px, 1fr));
+        gap: 12px;
+        max-width: 430px;
+      }
 
-    -- Update existing records if the campaign event date is within the lookback period
-    ,updated_rows as (
-        select
-            cb.sk as sk
-            ,cb.user_id as user_id
-            ,cb.user_type as user_type
-            ,cb.canvas_or_campaign_id as canvas_or_campaign_id
-            ,cb.canvas_or_campaign_name as canvas_or_campaign_name
-            ,cb.canvas_step_id as canvas_step_id
-            ,cb.canvas_step_name as canvas_step_name
-            ,cb.automation_name as automation_name
-            ,cb.retention_create_date as retention_create_date
-            ,cb.user_level_campaign_send_date as user_level_campaign_send_date
-            ,cb.user_level_campaign_open_date as user_level_campaign_open_date
-            ,cb.user_level_campaign_click_date as user_level_campaign_click_date
+      .minute-block {
+        min-height: 106px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        position: relative;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.75);
+        border: 4px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 12px 24px rgba(33, 71, 104, 0.12);
+        transition:
+          transform 250ms ease,
+          filter 250ms ease,
+          opacity 250ms ease;
+      }
 
-            ,cb.sends as sends
-            ,cb.opens as opens
-            ,cb.clicks as clicks
-            ,cb.control_group as control_group
-            ,cb.unsubscribes as unsubscribes
-            ,cb.delivery as delivery
+      .minute-block::before {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: var(--fill, 100%);
+        background: var(--tone);
+        transition: height 400ms linear;
+      }
 
-            {% for event in event_types %}
-                {% for day in attribution_days %}
+      .minute-block.done {
+        transform: translateY(-2px);
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_orders_{{ event }}.orders_{{ day }}days_after{{ event }}, 0) 
-                    else ar.orders_{{ day }}days_after{{ event }} end 
-                as orders_{{ day }}days_after{{ event }}
+      .minute-label {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        gap: 2px;
+        color: #123047;
+        text-align: center;
+        font-weight: 950;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_briefs_{{ event }}.briefs_{{ day }}days_after{{ event }}, 0) 
-                    else ar.briefs_{{ day }}days_after{{ event }} end 
-                as briefs_{{ day }}days_after{{ event }}
+      .minute-label strong {
+        font-size: 2.7rem;
+        line-height: 1;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_completed_orders_{{ event }}.completed_orders_{{ day }}days_after{{ event }}, 0) 
-                    else ar.completed_orders_{{ day }}days_after{{ event }} end 
-                as completed_orders_{{ day }}days_after{{ event }}
+      .minute-label span {
+        font-size: 1rem;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_seller_plus_{{ event }}.seller_plus_{{ day }}days_after{{ event }}, 0) 
-                    else ar.seller_plus_{{ day }}days_after{{ event }} end 
-                as seller_plus_{{ day }}days_after{{ event }}
+      .timer-stage {
+        background: rgba(255, 255, 255, 0.72);
+        border: 4px solid rgba(255, 255, 255, 0.72);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+        padding: clamp(18px, 4vw, 34px);
+        display: grid;
+        gap: 22px;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_promoted_listing_{{ event }}.promoted_listing_{{ day }}days_after{{ event }}, 0) 
-                    else ar.promoted_listing_{{ day }}days_after{{ event }} end 
-                as promoted_listing_{{ day }}days_after{{ event }}
+      .visual {
+        min-height: clamp(290px, 46vw, 430px);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        background:
+          linear-gradient(180deg, #a7dcff 0 54%, #85d49b 54% 100%);
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_contract_orders_{{ event }}.contract_orders_{{ day }}days_after{{ event }}, 0) 
-                    else ar.contract_orders_{{ day }}days_after{{ event }} end 
-                as contract_orders_{{ day }}days_after{{ event }}
+      .cloud {
+        position: absolute;
+        width: 100px;
+        height: 36px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        top: 32px;
+        left: 10%;
+        box-shadow:
+          32px -12px 0 8px rgba(255, 255, 255, 0.9),
+          62px 0 0 2px rgba(255, 255, 255, 0.9);
+      }
 
-                {% endfor %}
+      .cloud.two {
+        top: 78px;
+        left: auto;
+        right: 8%;
+        transform: scale(0.82);
+        opacity: 0.82;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then attr_coupons_{{ event }}.reward_promo_codes_14days_after{{ event }} else ar.reward_promo_codes_14days_after{{ event }} end 
-                as reward_promo_codes_14days_after{{ event }}
+      .finish-scene {
+        position: absolute;
+        width: clamp(86px, 15vw, 138px);
+        height: clamp(92px, 16vw, 142px);
+        right: 5%;
+        bottom: 28%;
+        z-index: 3;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_orders_{{ event }}.revenue_14days_after{{ event }}, 0) else ar.revenue_14days_after{{ event }} end 
-                as revenue_14days_after{{ event }}
+      .bed,
+      .bath {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 76%;
+        height: 52%;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_completed_orders_{{ event }}.completed_revenue_14days_after{{ event }}, 0) else ar.completed_revenue_14days_after{{ event }} end 
-                as completed_revenue_14days_after{{ event }}
+      .bed {
+        display: none;
+        border-radius: 8px;
+        background: #8f7bd8;
+        box-shadow: inset 0 -9px 0 rgba(41, 32, 92, 0.18);
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_seller_plus_{{ event }}.revenue_14days_after{{ event }}, 0) else ar.seller_plus_revenue_14days_after{{ event }} end 
-                as seller_plus_revenue_14days_after{{ event }}
+      .bed::before {
+        content: "";
+        position: absolute;
+        right: 6%;
+        top: 12%;
+        width: 30%;
+        height: 38%;
+        border-radius: 8px;
+        background: #fff7df;
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_promoted_listing_{{ event }}.revenue_14days_after{{ event }}, 0) else ar.promoted_listing_revenue_14days_after{{ event }} end 
-                as promoted_listing_revenue_14days_after{{ event }}
+      .bed::after {
+        content: "";
+        position: absolute;
+        left: -3%;
+        right: -3%;
+        bottom: -12%;
+        height: 16%;
+        border-radius: 999px;
+        background: var(--ink);
+      }
 
-                ,case when cb.user_level_campaign_{{ event }}_date between date_sub(date({{ var("pt") }}), interval 13 day) and date({{ var("pt") }}) 
-                    then ifnull(attr_contract_orders_{{ event }}.revenue_14days_after{{ event }}, 0) else ar.contract_orders_revenue_14days_after{{ event }} end 
-                as contract_orders_revenue_14days_after{{ event }}
-                
-            {% endfor %}
-            ,{{ var("pt") }} as _PARTITIONTIME
-        from calc_base as cb
-        join agg_retention as ar on cb.sk = ar.sk
-        {% for event in event_types %}
-            left join attr_orders_{{ event }} on cb.user_id = attr_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_briefs_{{ event }} on cb.user_id = attr_briefs_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_briefs_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_briefs_{{ event }}.canvas_step_id, 'null')
-            left join attr_completed_orders_{{ event }} on cb.user_id = attr_completed_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_completed_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_completed_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_seller_plus_{{ event }} on cb.user_id = attr_seller_plus_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_seller_plus_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_seller_plus_{{ event }}.canvas_step_id, 'null')
-            left join attr_promoted_listing_{{ event }} on cb.user_id = attr_promoted_listing_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_promoted_listing_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_promoted_listing_{{ event }}.canvas_step_id, 'null')
-            left join attr_contract_orders_{{ event }} on cb.user_id = attr_contract_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_contract_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_contract_orders_{{ event }}.canvas_step_id, 'null')
-            left join attr_coupons_{{ event }} on cb.user_id = attr_coupons_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_coupons_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_coupons_{{ event }}.canvas_step_id, 'null')
-        {% endfor %}
-    )
-    select * from new_rows union all select * from updated_rows
-{% else %}
-    -- Full refresh: Select all calculated metrics joining all CTEs
-    select
-        cb.user_id as user_id
-        ,cb.user_type as user_type
-        ,cb.canvas_or_campaign_id as canvas_or_campaign_id
-        ,cb.canvas_or_campaign_name as canvas_or_campaign_name
-        ,cb.canvas_step_id as canvas_step_id
-        ,cb.canvas_step_name as canvas_step_name
-        ,cb.automation_name as automation_name
-        ,cb.retention_create_date as retention_create_date
-        ,cb.email_flag as email_flag
-        ,cb.sends as sends
-        ,cb.opens as opens
-        ,cb.clicks as clicks
-        ,cb.control_group as control_group
-        ,cb.unsubscribes as unsubscribes
-        ,cb.delivery as delivery
-        ,cb.sk as sk
-        ,cb.user_level_campaign_send_date as user_level_campaign_send_date
-        ,cb.user_level_campaign_open_date as user_level_campaign_open_date
-        ,cb.user_level_campaign_click_date as user_level_campaign_click_date
-        {% for event in event_types %}
-            {% for day in attribution_days %}
-            ,ifnull(attr_orders_{{ event }}.orders_{{ day }}days_after{{ event }}, 0) as orders_{{ day }}days_after{{ event }}
-            ,ifnull(attr_briefs_{{ event }}.briefs_{{ day }}days_after{{ event }}, 0) as briefs_{{ day }}days_after{{ event }}
-            ,ifnull(attr_completed_orders_{{ event }}.completed_orders_{{ day }}days_after{{ event }}, 0) as completed_orders_{{ day }}days_after{{ event }}
-            ,ifnull(attr_seller_plus_{{ event }}.seller_plus_{{ day }}days_after{{ event }}, 0) as seller_plus_{{ day }}days_after{{ event }}
-            ,ifnull(attr_promoted_listing_{{ event }}.promoted_listing_{{ day }}days_after{{ event }}, 0) as promoted_listing_{{ day }}days_after{{ event }}
-            ,ifnull(attr_contract_orders_{{ event }}.contract_orders_{{ day }}days_after{{ event }}, 0) as contract_orders_{{ day }}days_after{{ event }}
-            {% endfor %}
-            ,attr_coupons_{{ event }}.reward_promo_codes_14days_after{{ event }} as reward_promo_codes_14days_after{{ event }}
-            ,ifnull(attr_orders_{{ event }}.revenue_14days_after{{ event }}, 0) as revenue_14days_after{{ event }}
-            ,ifnull(attr_completed_orders_{{ event }}.completed_revenue_14days_after{{ event }}, 0) as completed_revenue_14days_after{{ event }}
-            ,ifnull(attr_seller_plus_{{ event }}.revenue_14days_after{{ event }}, 0) as seller_plus_revenue_14days_after{{ event }}
-            ,ifnull(attr_promoted_listing_{{ event }}.revenue_14days_after{{ event }}, 0) as promoted_listing_revenue_14days_after{{ event }}
-            ,ifnull(attr_contract_orders_{{ event }}.revenue_14days_after{{ event }}, 0) as contract_orders_revenue_14days_after{{ event }}
-        {% endfor %}
-        ,{{ var("pt") }} as _PARTITIONTIME
-    from calc_base as cb
-    {% for event in event_types %}
-        left join attr_orders_{{ event }} on cb.user_id = attr_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_orders_{{ event }}.canvas_step_id, 'null')
-        left join attr_briefs_{{ event }} on cb.user_id = attr_briefs_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_briefs_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_briefs_{{ event }}.canvas_step_id, 'null')
-        left join attr_completed_orders_{{ event }} on cb.user_id = attr_completed_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_completed_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_completed_orders_{{ event }}.canvas_step_id, 'null')
-        left join attr_seller_plus_{{ event }} on cb.user_id = attr_seller_plus_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_seller_plus_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_seller_plus_{{ event }}.canvas_step_id, 'null')
-        left join attr_promoted_listing_{{ event }} on cb.user_id = attr_promoted_listing_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_promoted_listing_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_promoted_listing_{{ event }}.canvas_step_id, 'null')
-        left join attr_contract_orders_{{ event }} on cb.user_id = attr_contract_orders_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_contract_orders_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_contract_orders_{{ event }}.canvas_step_id, 'null')
-        left join attr_coupons_{{ event }} on cb.user_id = attr_coupons_{{ event }}.user_id and cb.canvas_or_campaign_id = attr_coupons_{{ event }}.canvas_or_campaign_id and ifnull(cb.canvas_step_id, 'null') = ifnull(attr_coupons_{{ event }}.canvas_step_id, 'null')
-    {% endfor %}
-{% endif %}
+      .bath {
+        display: none;
+        height: 48%;
+        border-radius: 12px 12px 32px 32px;
+        background: #ffffff;
+        box-shadow:
+          inset 0 -12px 0 rgba(99, 171, 201, 0.26),
+          0 8px 0 rgba(23, 50, 77, 0.12);
+      }
+
+      .bath::before {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 18%;
+        height: 28%;
+        border-radius: 999px;
+        background: #8edcff;
+      }
+
+      .bath::after {
+        content: "";
+        position: absolute;
+        right: 10%;
+        top: -36%;
+        width: 16%;
+        height: 46%;
+        border: 8px solid var(--ink);
+        border-left: 0;
+        border-bottom: 0;
+        border-radius: 0 24px 0 0;
+      }
+
+      .mode-sleep .bed,
+      .mode-bath .bath {
+        display: block;
+      }
+
+      .finish-flag {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 44%;
+        height: 60%;
+      }
+
+      .finish-flag::before {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 8px;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--ink);
+      }
+
+      .finish-flag::after {
+        content: "";
+        position: absolute;
+        right: 8px;
+        top: 6px;
+        width: 44px;
+        height: 30px;
+        border-radius: 6px 0 0 6px;
+        background:
+          linear-gradient(45deg, #ffffff 25%, transparent 25% 50%, #ffffff 50% 75%, transparent 75%),
+          var(--ink);
+        background-size: 18px 18px;
+      }
+
+      .road-map {
+        position: absolute;
+        inset: 42% 5% 16%;
+        width: 90%;
+        height: 30%;
+        overflow: visible;
+        z-index: 1;
+      }
+
+      .road-shadow,
+      .road-base,
+      .road-progress,
+      .road-dashes {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .road-shadow {
+        stroke: rgba(28, 65, 82, 0.18);
+        stroke-width: 52;
+        transform: translateY(10px);
+      }
+
+      .road-base {
+        stroke: #f6efe4;
+        stroke-width: 44;
+      }
+
+      .road-progress {
+        stroke: var(--lemon);
+        stroke-width: 30;
+        stroke-dasharray: 100;
+        stroke-dashoffset: var(--road-left, 100);
+        transition: stroke-dashoffset 500ms linear;
+      }
+
+      .road-dashes {
+        stroke: rgba(23, 50, 77, 0.38);
+        stroke-width: 6;
+        stroke-dasharray: 2 14;
+      }
+
+      .road-stations {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .station {
+        position: absolute;
+        width: clamp(34px, 7vw, 52px);
+        height: clamp(34px, 7vw, 52px);
+        left: var(--x);
+        bottom: var(--y);
+        transform: translate(-50%, 50%);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #ffffff;
+        border: 5px solid var(--tone);
+        color: var(--ink);
+        font-weight: 950;
+        box-shadow: 0 10px 18px rgba(26, 66, 86, 0.18);
+      }
+
+      .station.done {
+        background: var(--tone);
+      }
+
+      .runner {
+        position: absolute;
+        left: var(--runner-left, 8%);
+        bottom: 20%;
+        width: clamp(58px, 10vw, 86px);
+        height: clamp(92px, 16vw, 132px);
+        transform: translateX(-50%);
+        transition: left 500ms linear;
+        filter: drop-shadow(0 13px 12px rgba(19, 54, 77, 0.24));
+        z-index: 4;
+      }
+
+      .kid-head {
+        position: absolute;
+        width: 38%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        left: 31%;
+        top: 2%;
+        background: #ffd39c;
+        box-shadow: inset -5px -4px 0 rgba(151, 86, 42, 0.14);
+      }
+
+      .kid-head::before,
+      .kid-head::after {
+        content: "";
+        position: absolute;
+        top: 38%;
+        width: 10%;
+        height: 10%;
+        border-radius: 50%;
+        background: var(--ink);
+      }
+
+      .kid-head::before {
+        right: 32%;
+      }
+
+      .kid-head::after {
+        left: 32%;
+      }
+
+      .kid-body {
+        position: absolute;
+        width: 46%;
+        height: 36%;
+        left: 27%;
+        top: 36%;
+        border-radius: 18px 18px 12px 12px;
+        background: var(--berry);
+        box-shadow: inset 0 -8px 0 rgba(117, 32, 62, 0.16);
+      }
+
+      .mode-bath .kid-body {
+        background: #28a7d8;
+      }
+
+      .kid-arm,
+      .kid-leg {
+        position: absolute;
+        width: 10%;
+        border-radius: 999px;
+        background: var(--ink);
+        transform-origin: top center;
+      }
+
+      .kid-arm {
+        height: 30%;
+        top: 42%;
+      }
+
+      .kid-arm.one {
+        right: 20%;
+        transform: rotate(28deg);
+      }
+
+      .kid-arm.two {
+        left: 20%;
+        transform: rotate(-28deg);
+      }
+
+      .kid-leg {
+        height: 31%;
+        top: 68%;
+      }
+
+      .kid-leg.one {
+        right: 34%;
+        transform: rotate(17deg);
+      }
+
+      .kid-leg.two {
+        left: 34%;
+        transform: rotate(-17deg);
+      }
+
+      .kid-label {
+        position: absolute;
+        top: -14%;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: max-content;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        font-size: clamp(0.72rem, 1.7vw, 0.95rem);
+        font-weight: 900;
+        box-shadow: 0 8px 14px rgba(25, 65, 87, 0.14);
+      }
+
+      .readout {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 18px;
+      }
+
+      .time {
+        min-width: 178px;
+        border-radius: 8px;
+        background: var(--ink);
+        color: white;
+        text-align: center;
+        padding: 12px 18px 16px;
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        line-height: 1;
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .status {
+        margin: 0;
+        font-size: clamp(1.3rem, 3.5vw, 2.35rem);
+        line-height: 1.12;
+        font-weight: 950;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .control {
+        min-height: 64px;
+        border: 0;
+        border-radius: 8px;
+        color: #112f47;
+        background: #ffffff;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: clamp(1.1rem, 3vw, 1.35rem);
+        font-weight: 900;
+        box-shadow: 0 10px 20px rgba(39, 71, 93, 0.14);
+      }
+
+      .control.primary {
+        background: var(--mint);
+      }
+
+      .control:active,
+      .sound-toggle:active {
+        transform: translateY(2px);
+      }
+
+      .icon {
+        width: 1.35em;
+        height: 1.35em;
+        display: inline-block;
+      }
+
+      .finished .visual {
+        animation: celebrate 900ms ease-in-out infinite alternate;
+      }
+
+      .finished .runner {
+        animation: bounce 520ms ease-in-out infinite alternate;
+      }
+
+      @keyframes bounce {
+        from {
+          transform: translateX(-50%) translateY(0);
+        }
+        to {
+          transform: translateX(-50%) translateY(-14px);
+        }
+      }
+
+      @keyframes celebrate {
+        from {
+          filter: saturate(1);
+        }
+        to {
+          filter: saturate(1.25) brightness(1.03);
+        }
+      }
+
+      @media (max-width: 790px) {
+        header {
+          padding-top: 12px;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+          align-items: start;
+          padding-top: 8px;
+        }
+
+        .intro {
+          gap: 16px;
+        }
+
+        h1 {
+          max-width: 11ch;
+        }
+
+        .lead {
+          font-size: 1.12rem;
+        }
+
+        .time-picker {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .mode-picker {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .timer-stage {
+          padding: 14px;
+        }
+
+        .readout {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .time {
+          min-width: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page mode-sleep" id="app">
+      <header>
+        <div class="brand" aria-label="טיימר של שלוש דקות">
+          <div class="brand-mark" aria-hidden="true">
+            <svg class="icon" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.5" />
+              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <span>טיימר קטן</span>
+        </div>
+        <button class="sound-toggle" id="soundToggle" type="button">צליל בסוף: פעיל</button>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="title">
+          <h1 id="title">3 דקות</h1>
+          <p class="lead" id="lead">כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.</p>
+
+          <div class="time-picker" aria-label="בחירת זמן לטיימר">
+            <button class="time-choice" type="button" data-seconds="10" aria-pressed="false">10 שניות</button>
+            <button class="time-choice" type="button" data-seconds="30" aria-pressed="false">חצי דקה</button>
+            <button class="time-choice" type="button" data-seconds="60" aria-pressed="false">דקה</button>
+            <button class="time-choice" type="button" data-seconds="120" aria-pressed="false">2 דקות</button>
+            <button class="time-choice" type="button" data-seconds="180" aria-pressed="true">3 דקות</button>
+          </div>
+
+          <div class="mode-picker" aria-label="בחירת מצב לטיימר">
+            <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true">מצב שינה</button>
+            <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false">מצב אמבטיה</button>
+          </div>
+
+          <div class="minute-row" aria-label="שלוש דקות מחולקות לשלושה חלקים">
+          </div>
+        </section>
+
+        <section class="timer-stage" aria-label="טיימר פעיל">
+          <div class="visual" id="visual">
+            <div class="cloud"></div>
+            <div class="cloud two"></div>
+            <div class="finish-scene" aria-hidden="true">
+              <div class="finish-flag"></div>
+              <div class="bed"></div>
+              <div class="bath"></div>
+            </div>
+            <svg class="road-map" viewBox="0 0 900 420" aria-hidden="true" preserveAspectRatio="none">
+              <path class="road-shadow" d="M80 250 L790 250" />
+              <path class="road-base" d="M80 250 L790 250" />
+              <path class="road-progress" pathLength="100" d="M80 250 L790 250" />
+              <path class="road-dashes" d="M80 250 L790 250" />
+            </svg>
+            <div class="road-stations" aria-hidden="true">
+            </div>
+            <div class="runner" aria-hidden="true">
+              <div class="kid-label" id="kidLabel">למיטה</div>
+              <div class="kid-head"></div>
+              <div class="kid-body"></div>
+              <div class="kid-arm one"></div>
+              <div class="kid-arm two"></div>
+              <div class="kid-leg one"></div>
+              <div class="kid-leg two"></div>
+            </div>
+          </div>
+
+          <div class="readout">
+            <div class="time" id="time" aria-live="polite">3:00</div>
+            <div>
+              <p class="status" id="status">מוכנים להתחיל?</p>
+            </div>
+          </div>
+
+          <div class="controls">
+            <button class="control primary" id="startPause" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5.2v13.6c0 .8.9 1.3 1.6.8l9.6-6.8c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 3.9 8 4.4 8 5.2Z" />
+              </svg>
+              <span>התחלה</span>
+            </button>
+            <button class="control" id="reset" type="button">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 8a8 8 0 1 1 1 9" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" />
+                <path d="M5 4v4h4" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>מהתחלה</span>
+            </button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const options = {
+        10: { title: "10 שניות", lead: "מסלול קצרצר. מגיעים לדגל ממש מהר.", blocks: ["10"], aria: "עשר שניות" },
+        30: { title: "חצי דקה", lead: "קובייה אחת קצרה. כשהיא מתמלאת, הזמן נגמר.", blocks: ["חצי"], aria: "חצי דקה" },
+        60: { title: "דקה", lead: "קובייה אחת היא דקה אחת. כשהיא מתמלאת, הזמן נגמר.", blocks: ["1"], aria: "דקה אחת" },
+        120: { title: "2 דקות", lead: "כל קובייה היא דקה אחת. כשהשתיים מתמלאות, הזמן נגמר.", blocks: ["1", "2"], aria: "שתי דקות מחולקות לשני חלקים" },
+        180: { title: "3 דקות", lead: "כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.", blocks: ["1", "2", "3"], aria: "שלוש דקות מחולקות לשלושה חלקים" },
+      };
+
+      const modes = {
+        sleep: {
+          label: "למיטה",
+          lead: "עכשיו הולכים לאט לאט למיטה.",
+          ready: "מוכנים ללכת למיטה?",
+          done: "הגענו למיטה. לילה טוב.",
+          almost: "כמעט במיטה.",
+        },
+        bath: {
+          label: "לאמבטיה",
+          lead: "עכשיו הולכים לאט לאט לאמבטיה.",
+          ready: "מוכנים ללכת לאמבטיה?",
+          done: "הגענו לאמבטיה. כל הכבוד.",
+          almost: "כמעט באמבטיה.",
+        },
+      };
+
+      const app = document.querySelector("#app");
+      const visual = document.querySelector("#visual");
+      const titleEl = document.querySelector("#title");
+      const leadEl = document.querySelector("#lead");
+      const timeEl = document.querySelector("#time");
+      const statusEl = document.querySelector("#status");
+      const startPause = document.querySelector("#startPause");
+      const reset = document.querySelector("#reset");
+      const soundToggle = document.querySelector("#soundToggle");
+      const timeChoices = [...document.querySelectorAll(".time-choice")];
+      const modeChoices = [...document.querySelectorAll(".mode-choice")];
+      const blockRow = document.querySelector(".minute-row");
+      const roadStations = document.querySelector(".road-stations");
+      const kidLabel = document.querySelector("#kidLabel");
+
+      let totalSeconds = 180;
+      let remaining = totalSeconds;
+      let currentMode = "sleep";
+      let running = false;
+      let timerId = null;
+      let soundOn = true;
+      let audioCtx = null;
+      let audioUnlocked = false;
+
+      const startIcon = `
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M8 5.2v13.6c0 .8.9 1.3 1.6.8l9.6-6.8c.6-.4.6-1.3 0-1.7L9.6 4.4C8.9 3.9 8 4.4 8 5.2Z" />
+        </svg><span>התחלה</span>`;
+      const pauseIcon = `
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M7 5h3.5v14H7V5Zm6.5 0H17v14h-3.5V5Z" />
+        </svg><span>עצירה</span>`;
+
+      function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${String(secs).padStart(2, "0")}`;
+      }
+
+      function blockWord(count) {
+        if (count === 1) return "חלק אחד";
+        if (count === 2) return "שני חלקים";
+        return "שלושה חלקים";
+      }
+
+      function roadPoint(progress) {
+        return {
+          x: 8 + progress * 78,
+          y: 24,
+        };
+      }
+
+      function renderBlocks() {
+        const option = options[totalSeconds];
+        blockRow.style.setProperty("--block-count", option.blocks.length);
+        blockRow.setAttribute("aria-label", option.aria);
+        blockRow.innerHTML = option.blocks
+          .map((label, index) => {
+            const tone = ["var(--mint)", "var(--peach)", "var(--lemon)"][index] || "var(--mint)";
+            const text = label === "10" ? "שניות" : label === "חצי" ? "דקה" : Number(label) === 1 ? "דקה" : "דקות";
+            return `
+              <div class="minute-block" style="--tone: ${tone}; --fill: 0%" data-minute="${index}">
+                <div class="minute-label">
+                  <strong>${label}</strong>
+                  <span>${text}</span>
+                </div>
+              </div>`;
+          })
+          .join("");
+      }
+
+      function renderStations() {
+        const option = options[totalSeconds];
+        roadStations.innerHTML = option.blocks
+          .map((label, index) => {
+            const tone = ["var(--mint)", "var(--peach)", "var(--lemon)"][index] || "var(--mint)";
+            const point = roadPoint((index + 1) / option.blocks.length);
+            return `<div class="station" style="--x: ${point.x}%; --y: ${point.y}%; --tone: ${tone}" data-station="${index}">${label}</div>`;
+          })
+          .join("");
+      }
+
+      function refreshCopy() {
+        const option = options[totalSeconds];
+        const mode = modes[currentMode];
+        titleEl.textContent = option.title;
+        leadEl.textContent = `${option.lead} ${mode.lead}`;
+        kidLabel.textContent = mode.label;
+      }
+
+      function setDuration(seconds) {
+        stopTimer();
+        totalSeconds = seconds;
+        remaining = totalSeconds;
+
+        timeChoices.forEach((choice) => {
+          choice.setAttribute("aria-pressed", String(Number(choice.dataset.seconds) === seconds));
+        });
+        refreshCopy();
+        renderBlocks();
+        renderStations();
+        update();
+      }
+
+      function setMode(modeName) {
+        stopTimer();
+        currentMode = modeName;
+        remaining = totalSeconds;
+        app.classList.toggle("mode-sleep", currentMode === "sleep");
+        app.classList.toggle("mode-bath", currentMode === "bath");
+        modeChoices.forEach((choice) => {
+          choice.setAttribute("aria-pressed", String(choice.dataset.mode === modeName));
+        });
+        refreshCopy();
+        update();
+      }
+
+      function getAudioContext() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return null;
+        if (!audioCtx) audioCtx = new AudioContext();
+        return audioCtx;
+      }
+
+      async function unlockSound() {
+        if (!soundOn || audioUnlocked) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.start(ctx.currentTime);
+        oscillator.stop(ctx.currentTime + 0.03);
+        audioUnlocked = true;
+      }
+
+      async function playDoneSound() {
+        if (!soundOn) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") {
+          await ctx.resume();
+        }
+
+        if ("vibrate" in navigator) {
+          navigator.vibrate([180, 80, 180]);
+        }
+
+        [523.25, 659.25, 783.99].forEach((frequency, index) => {
+          const oscillator = ctx.createOscillator();
+          const gain = ctx.createGain();
+          oscillator.frequency.value = frequency;
+          oscillator.type = "sine";
+          gain.gain.setValueAtTime(0, ctx.currentTime + index * 0.14);
+          gain.gain.linearRampToValueAtTime(0.16, ctx.currentTime + index * 0.14 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + index * 0.14 + 0.28);
+          oscillator.connect(gain).connect(ctx.destination);
+          oscillator.start(ctx.currentTime + index * 0.14);
+          oscillator.stop(ctx.currentTime + index * 0.14 + 0.3);
+        });
+      }
+
+      function update() {
+        const progress = remaining / totalSeconds;
+        const elapsed = 1 - progress;
+        const carPoint = roadPoint(elapsed);
+        visual.style.setProperty("--road-left", `${100 - elapsed * 100}`);
+        visual.style.setProperty("--runner-left", `${carPoint.x}%`);
+        timeEl.textContent = formatTime(remaining);
+
+        const blocks = [...document.querySelectorAll(".minute-block")];
+        const elapsedSeconds = totalSeconds - remaining;
+        const blockSeconds = totalSeconds / blocks.length;
+        blocks.forEach((block, index) => {
+          const blockStart = index * blockSeconds;
+          const fill = Math.min(100, Math.max(0, ((elapsedSeconds - blockStart) / blockSeconds) * 100));
+          block.style.setProperty("--fill", `${fill}%`);
+          block.classList.toggle("done", fill === 100);
+        });
+
+        const stations = [...document.querySelectorAll(".station")];
+        stations.forEach((station, index) => {
+          station.classList.toggle("done", elapsed >= (index + 1) / stations.length);
+        });
+
+        if (remaining === totalSeconds) {
+          statusEl.textContent = modes[currentMode].ready;
+        } else if (remaining === 0) {
+          statusEl.textContent = modes[currentMode].done;
+        } else if (remaining <= 10) {
+          statusEl.textContent = modes[currentMode].almost;
+        } else {
+          const totalBlocks = options[totalSeconds].blocks.length;
+          const blocksLeft = Math.max(1, Math.ceil((remaining / totalSeconds) * totalBlocks));
+          statusEl.textContent = blocksLeft === 1 ? "נשאר חלק אחד." : `נשארו ${blockWord(blocksLeft)}.`;
+        }
+
+        app.classList.toggle("finished", remaining === 0);
+      }
+
+      function stopTimer() {
+        running = false;
+        window.clearInterval(timerId);
+        timerId = null;
+        startPause.innerHTML = startIcon;
+      }
+
+      function startTimer() {
+        unlockSound();
+        if (remaining === 0) remaining = totalSeconds;
+        running = true;
+        startPause.innerHTML = pauseIcon;
+        update();
+        timerId = window.setInterval(() => {
+          remaining = Math.max(0, remaining - 1);
+          update();
+          if (remaining === 0) {
+            stopTimer();
+            playDoneSound();
+          }
+        }, 1000);
+      }
+
+      startPause.addEventListener("click", () => {
+        if (running) {
+          stopTimer();
+          statusEl.textContent = "עצרנו רגע.";
+          return;
+        }
+        startTimer();
+      });
+
+      reset.addEventListener("click", () => {
+        stopTimer();
+        remaining = totalSeconds;
+        update();
+      });
+
+      timeChoices.forEach((choice) => {
+        choice.addEventListener("click", () => {
+          setDuration(Number(choice.dataset.seconds));
+        });
+      });
+
+      modeChoices.forEach((choice) => {
+        choice.addEventListener("click", () => {
+          setMode(choice.dataset.mode);
+        });
+      });
+
+      soundToggle.addEventListener("click", () => {
+        soundOn = !soundOn;
+        soundToggle.textContent = soundOn ? "צליל בסוף: פעיל" : "צליל בסוף: כבוי";
+        if (soundOn) unlockSound();
+      });
+
+      document.addEventListener("pointerdown", unlockSound, { once: true });
+
+      refreshCopy();
+      renderStations();
+      renderBlocks();
+      update();
+    </script>
+  </body>
+</html>

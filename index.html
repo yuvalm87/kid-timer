@@ -131,9 +131,9 @@
 
       .mode-picker {
         display: grid;
-        grid-template-columns: repeat(2, minmax(120px, 1fr));
+        grid-template-columns: repeat(4, minmax(104px, 1fr));
         gap: 10px;
-        max-width: 430px;
+        max-width: 640px;
       }
 
       .time-choice,
@@ -147,6 +147,26 @@
         cursor: pointer;
         font-size: clamp(1rem, 2.8vw, 1.24rem);
         font-weight: 950;
+      }
+
+      .mode-choice {
+        min-height: 92px;
+        display: grid;
+        place-items: center;
+        gap: 4px;
+        padding: 10px 8px;
+      }
+
+      .mode-icon {
+        display: block;
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1;
+      }
+
+      .mode-text {
+        display: block;
+        font-size: clamp(0.9rem, 2.4vw, 1.12rem);
+        line-height: 1.05;
       }
 
       .time-choice[aria-pressed="true"],
@@ -263,7 +283,10 @@
       }
 
       .bed,
-      .bath {
+      .bath,
+      .daycare,
+      .towel,
+      .clothes {
         position: absolute;
         left: 0;
         bottom: 0;
@@ -334,8 +357,107 @@
         border-radius: 0 24px 0 0;
       }
 
+      .daycare {
+        display: none;
+        height: 60%;
+        border-radius: 8px;
+        background: #ffe08a;
+        box-shadow: inset 0 -9px 0 rgba(168, 101, 38, 0.18);
+      }
+
+      .daycare::before {
+        content: "";
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: -42%;
+        height: 58%;
+        background: #ef6f6c;
+        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+      }
+
+      .daycare::after {
+        content: "";
+        position: absolute;
+        left: 38%;
+        bottom: 0;
+        width: 24%;
+        height: 38%;
+        border-radius: 8px 8px 0 0;
+        background: var(--ink);
+        box-shadow:
+          -28px -12px 0 -8px #ffffff,
+          28px -12px 0 -8px #ffffff;
+      }
+
+      .towel {
+        display: none;
+        height: 66%;
+      }
+
+      .towel::before {
+        content: "";
+        position: absolute;
+        left: 12%;
+        top: 0;
+        width: 50%;
+        height: 74%;
+        border-radius: 14px;
+        background:
+          repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.35) 0 10px, transparent 10px 20px),
+          #7ed6c4;
+        box-shadow: inset 0 -10px 0 rgba(35, 110, 103, 0.18);
+      }
+
+      .towel::after {
+        content: "";
+        position: absolute;
+        right: 8%;
+        bottom: 0;
+        width: 52%;
+        height: 22%;
+        border-radius: 999px;
+        background: #fff7df;
+        box-shadow: inset 0 -8px 0 rgba(35, 110, 103, 0.12);
+      }
+
+      .clothes {
+        display: none;
+        height: 64%;
+      }
+
+      .clothes::before {
+        content: "";
+        position: absolute;
+        left: 18%;
+        top: 4%;
+        width: 52%;
+        height: 66%;
+        border-radius: 16px 16px 10px 10px;
+        background: #f28c54;
+        clip-path: polygon(18% 0, 38% 12%, 50% 0, 62% 12%, 82% 0, 100% 32%, 82% 44%, 82% 100%, 18% 100%, 18% 44%, 0 32%);
+        box-shadow: inset 0 -10px 0 rgba(122, 65, 25, 0.14);
+      }
+
+      .clothes::after {
+        content: "";
+        position: absolute;
+        right: 6%;
+        bottom: 2%;
+        width: 34%;
+        height: 42%;
+        border-radius: 10px 10px 18px 18px;
+        background:
+          linear-gradient(90deg, transparent 44%, rgba(255, 255, 255, 0.85) 44% 56%, transparent 56%),
+          #3f70d8;
+        box-shadow: inset 0 -8px 0 rgba(33, 54, 117, 0.16);
+      }
+
       .mode-sleep .bed,
-      .mode-bath .bath {
+      .mode-bath .bath,
+      .mode-daycare .daycare,
+      .mode-out-bath .towel,
+      .mode-dress .clothes {
         display: block;
       }
 
@@ -500,6 +622,18 @@
         background: #28a7d8;
       }
 
+      .mode-daycare .kid-body {
+        background: #4e9c64;
+      }
+
+      .mode-out-bath .kid-body {
+        background: #7ed6c4;
+      }
+
+      .mode-dress .kid-body {
+        background: #f28c54;
+      }
+
       .kid-arm,
       .kid-leg {
         position: absolute;
@@ -579,6 +713,42 @@
         font-size: clamp(1.3rem, 3.5vw, 2.35rem);
         line-height: 1.12;
         font-weight: 950;
+      }
+
+      .countdown-dots {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        max-width: 220px;
+        margin-top: 12px;
+        opacity: 0;
+        transform: translateY(4px);
+        transition:
+          opacity 220ms ease,
+          transform 220ms ease;
+      }
+
+      .countdown-dots.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .countdown-dot {
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background: var(--lemon);
+        border: 4px solid rgba(255, 255, 255, 0.9);
+        box-shadow: 0 8px 14px rgba(90, 80, 40, 0.14);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease,
+          background 180ms ease;
+      }
+
+      .countdown-dot.off {
+        opacity: 0.28;
+        transform: scale(0.72);
+        background: rgba(255, 255, 255, 0.8);
       }
 
       .controls {
@@ -730,8 +900,26 @@
           </div>
 
           <div class="mode-picker" aria-label="בחירת מצב לטיימר">
-            <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true">מצב שינה</button>
-            <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false">מצב אמבטיה</button>
+            <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true" aria-label="מצב שינה">
+              <span class="mode-icon" aria-hidden="true">☾</span>
+              <span class="mode-text">שינה</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false" aria-label="מצב אמבטיה">
+              <span class="mode-icon" aria-hidden="true">♨</span>
+              <span class="mode-text">אמבטיה</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode="daycare" aria-pressed="false" aria-label="הולכים לגן">
+              <span class="mode-icon" aria-hidden="true">⌂</span>
+              <span class="mode-text">גן</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode="outBath" aria-pressed="false" aria-label="יוצאים מהאמבטיה">
+              <span class="mode-icon" aria-hidden="true">▤</span>
+              <span class="mode-text">מגבת</span>
+            </button>
+            <button class="mode-choice" type="button" data-mode="dress" aria-pressed="false" aria-label="להתלבש">
+              <span class="mode-icon" aria-hidden="true">◧</span>
+              <span class="mode-text">להתלבש</span>
+            </button>
           </div>
 
           <div class="minute-row" aria-label="שלוש דקות מחולקות לשלושה חלקים">
@@ -746,6 +934,9 @@
               <div class="finish-flag"></div>
               <div class="bed"></div>
               <div class="bath"></div>
+              <div class="daycare"></div>
+              <div class="towel"></div>
+              <div class="clothes"></div>
             </div>
             <svg class="road-map" viewBox="0 0 900 420" aria-hidden="true" preserveAspectRatio="none">
               <path class="road-shadow" d="M80 250 L790 250" />
@@ -770,6 +961,13 @@
             <div class="time" id="time" aria-live="polite">3:00</div>
             <div>
               <p class="status" id="status">מוכנים להתחיל?</p>
+              <div class="countdown-dots" id="countdownDots" aria-hidden="true">
+                <span class="countdown-dot"></span>
+                <span class="countdown-dot"></span>
+                <span class="countdown-dot"></span>
+                <span class="countdown-dot"></span>
+                <span class="countdown-dot"></span>
+              </div>
             </div>
           </div>
 
@@ -808,6 +1006,11 @@
           ready: "מוכנים ללכת למיטה?",
           done: "הגענו למיטה. לילה טוב.",
           almost: "כמעט במיטה.",
+          sound: [
+            { frequency: 392, start: 0, duration: 0.34, volume: 0.1, type: "sine" },
+            { frequency: 330, start: 0.24, duration: 0.42, volume: 0.08, type: "sine" },
+            { frequency: 262, start: 0.52, duration: 0.5, volume: 0.07, type: "sine" },
+          ],
         },
         bath: {
           label: "לאמבטיה",
@@ -815,8 +1018,55 @@
           ready: "מוכנים ללכת לאמבטיה?",
           done: "הגענו לאמבטיה. כל הכבוד.",
           almost: "כמעט באמבטיה.",
+          className: "mode-bath",
+          sound: [
+            { frequency: 660, start: 0, duration: 0.16, volume: 0.12, type: "triangle" },
+            { frequency: 880, start: 0.14, duration: 0.16, volume: 0.1, type: "triangle" },
+            { frequency: 740, start: 0.3, duration: 0.18, volume: 0.11, type: "triangle" },
+            { frequency: 990, start: 0.48, duration: 0.2, volume: 0.09, type: "triangle" },
+          ],
+        },
+        daycare: {
+          label: "לגן",
+          lead: "עכשיו הולכים לאט לאט לגן.",
+          ready: "מוכנים ללכת לגן?",
+          done: "הגענו לגן. יום נעים.",
+          almost: "כמעט בגן.",
+          className: "mode-daycare",
+          sound: [
+            { frequency: 523.25, start: 0, duration: 0.18, volume: 0.13, type: "sine" },
+            { frequency: 659.25, start: 0.16, duration: 0.18, volume: 0.13, type: "sine" },
+            { frequency: 783.99, start: 0.32, duration: 0.24, volume: 0.12, type: "sine" },
+          ],
+        },
+        outBath: {
+          label: "למגבת",
+          lead: "עכשיו יוצאים מהאמבטיה ומתנגבים.",
+          ready: "מוכנים לצאת מהאמבטיה?",
+          done: "יצאנו מהאמבטיה. כל הכבוד.",
+          almost: "כמעט סיימנו באמבטיה.",
+          className: "mode-out-bath",
+          sound: [
+            { frequency: 587.33, start: 0, duration: 0.2, volume: 0.1, type: "sine" },
+            { frequency: 698.46, start: 0.18, duration: 0.24, volume: 0.1, type: "sine" },
+          ],
+        },
+        dress: {
+          label: "לבגדים",
+          lead: "עכשיו הולכים להתלבש.",
+          ready: "מוכנים להתלבש?",
+          done: "התלבשנו. כל הכבוד.",
+          almost: "כמעט לבושים.",
+          className: "mode-dress",
+          sound: [
+            { frequency: 440, start: 0, duration: 0.18, volume: 0.11, type: "sine" },
+            { frequency: 554.37, start: 0.16, duration: 0.18, volume: 0.11, type: "sine" },
+            { frequency: 659.25, start: 0.32, duration: 0.22, volume: 0.1, type: "sine" },
+          ],
         },
       };
+
+      modes.sleep.className = "mode-sleep";
 
       const app = document.querySelector("#app");
       const visual = document.querySelector("#visual");
@@ -832,6 +1082,8 @@
       const blockRow = document.querySelector(".minute-row");
       const roadStations = document.querySelector(".road-stations");
       const kidLabel = document.querySelector("#kidLabel");
+      const countdownDots = document.querySelector("#countdownDots");
+      const countdownDotEls = [...document.querySelectorAll(".countdown-dot")];
 
       let totalSeconds = 180;
       let remaining = totalSeconds;
@@ -926,8 +1178,10 @@
         stopTimer();
         currentMode = modeName;
         remaining = totalSeconds;
-        app.classList.toggle("mode-sleep", currentMode === "sleep");
-        app.classList.toggle("mode-bath", currentMode === "bath");
+        Object.values(modes).forEach((mode) => {
+          app.classList.remove(mode.className);
+        });
+        app.classList.add(modes[currentMode].className);
         modeChoices.forEach((choice) => {
           choice.setAttribute("aria-pressed", String(choice.dataset.mode === modeName));
         });
@@ -971,17 +1225,18 @@
           navigator.vibrate([180, 80, 180]);
         }
 
-        [523.25, 659.25, 783.99].forEach((frequency, index) => {
+        modes[currentMode].sound.forEach((note) => {
           const oscillator = ctx.createOscillator();
           const gain = ctx.createGain();
-          oscillator.frequency.value = frequency;
-          oscillator.type = "sine";
-          gain.gain.setValueAtTime(0, ctx.currentTime + index * 0.14);
-          gain.gain.linearRampToValueAtTime(0.16, ctx.currentTime + index * 0.14 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + index * 0.14 + 0.28);
+          const start = ctx.currentTime + note.start;
+          oscillator.frequency.value = note.frequency;
+          oscillator.type = note.type;
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.linearRampToValueAtTime(note.volume, start + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + note.duration);
           oscillator.connect(gain).connect(ctx.destination);
-          oscillator.start(ctx.currentTime + index * 0.14);
-          oscillator.stop(ctx.currentTime + index * 0.14 + 0.3);
+          oscillator.start(start);
+          oscillator.stop(start + note.duration + 0.02);
         });
       }
 
@@ -1006,6 +1261,12 @@
         const stations = [...document.querySelectorAll(".station")];
         stations.forEach((station, index) => {
           station.classList.toggle("done", elapsed >= (index + 1) / stations.length);
+        });
+
+        const showFinalDots = remaining > 0 && remaining <= 5;
+        countdownDots.classList.toggle("show", showFinalDots);
+        countdownDotEls.forEach((dot, index) => {
+          dot.classList.toggle("off", !showFinalDots || index >= remaining);
         });
 
         if (remaining === totalSeconds) {

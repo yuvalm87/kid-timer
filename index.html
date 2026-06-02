@@ -90,6 +90,55 @@
         cursor: pointer;
       }
 
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .advanced-toggle {
+        min-height: 44px;
+        border: 0;
+        border-radius: 999px;
+        padding: 5px 12px 5px 7px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.76);
+        color: var(--ink);
+        box-shadow: 0 8px 18px rgba(39, 71, 93, 0.12);
+        cursor: pointer;
+        font-weight: 850;
+      }
+
+      .toggle-track {
+        width: 38px;
+        height: 22px;
+        border-radius: 999px;
+        padding: 3px;
+        background: rgba(73, 97, 114, 0.34);
+        transition: background 180ms ease;
+      }
+
+      .toggle-thumb {
+        display: block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 5px rgba(23, 50, 77, 0.22);
+        transform: translateX(0);
+        transition: transform 180ms ease;
+      }
+
+      .advanced-toggle[aria-pressed="true"] .toggle-track {
+        background: var(--mint);
+      }
+
+      .advanced-toggle[aria-pressed="true"] .toggle-thumb {
+        transform: translateX(-16px);
+      }
+
       main {
         width: min(1120px, calc(100% - 32px));
         margin: 0 auto;
@@ -127,6 +176,26 @@
         grid-template-columns: repeat(5, minmax(74px, 1fr));
         gap: 10px;
         max-width: 520px;
+      }
+
+      .advanced-panel {
+        display: none;
+        gap: 14px;
+        padding: 14px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.46);
+        border: 3px solid rgba(255, 255, 255, 0.6);
+      }
+
+      .advanced-panel.open {
+        display: grid;
+      }
+
+      .panel-label {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+        font-weight: 900;
       }
 
       .mode-picker {
@@ -817,6 +886,18 @@
       @media (max-width: 790px) {
         header {
           padding-top: 12px;
+          align-items: flex-start;
+        }
+
+        .header-actions {
+          display: grid;
+          gap: 7px;
+        }
+
+        .sound-toggle,
+        .advanced-toggle {
+          min-height: 40px;
+          font-size: 0.82rem;
         }
 
         main {
@@ -874,7 +955,7 @@
   <body>
     <div class="page mode-sleep" id="app">
       <header>
-        <div class="brand" aria-label="טיימר של שלוש דקות">
+        <div class="brand" aria-label="טיימר קטן">
           <div class="brand-mark" aria-hidden="true">
             <svg class="icon" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2.5" />
@@ -883,46 +964,56 @@
           </div>
           <span>טיימר קטן</span>
         </div>
-        <button class="sound-toggle" id="soundToggle" type="button">צליל בסוף: פעיל</button>
+        <div class="header-actions">
+          <button class="sound-toggle" id="soundToggle" type="button">צליל בסוף: פעיל</button>
+          <button class="advanced-toggle" id="advancedToggle" type="button" aria-pressed="false" aria-controls="advancedPanel">
+            <span>מתקדם</span>
+            <span class="toggle-track" aria-hidden="true"><span class="toggle-thumb"></span></span>
+          </button>
+        </div>
       </header>
 
       <main>
         <section class="intro" aria-labelledby="title">
-          <h1 id="title">3 דקות</h1>
-          <p class="lead" id="lead">כל קובייה היא דקה אחת. כשהכול מתמלא, הזמן נגמר ואפשר לעבור לדבר הבא.</p>
+          <h1 id="title">10 שניות</h1>
+          <p class="lead" id="lead">מסלול קצרצר. מגיעים לדגל ממש מהר. עכשיו הולכים לאט לאט למיטה.</p>
 
-          <div class="time-picker" aria-label="בחירת זמן לטיימר">
-            <button class="time-choice" type="button" data-seconds="10" aria-pressed="false">10 שניות</button>
-            <button class="time-choice" type="button" data-seconds="30" aria-pressed="false">חצי דקה</button>
-            <button class="time-choice" type="button" data-seconds="60" aria-pressed="false">דקה</button>
-            <button class="time-choice" type="button" data-seconds="120" aria-pressed="false">2 דקות</button>
-            <button class="time-choice" type="button" data-seconds="180" aria-pressed="true">3 דקות</button>
+          <div class="advanced-panel" id="advancedPanel">
+            <p class="panel-label">בחירת זמן</p>
+            <div class="time-picker" aria-label="בחירת זמן לטיימר">
+              <button class="time-choice" type="button" data-seconds="10" aria-pressed="true">10 שניות</button>
+              <button class="time-choice" type="button" data-seconds="30" aria-pressed="false">חצי דקה</button>
+              <button class="time-choice" type="button" data-seconds="60" aria-pressed="false">דקה</button>
+              <button class="time-choice" type="button" data-seconds="120" aria-pressed="false">2 דקות</button>
+              <button class="time-choice" type="button" data-seconds="180" aria-pressed="false">3 דקות</button>
+            </div>
+
+            <p class="panel-label">בחירת פעולה</p>
+            <div class="mode-picker" aria-label="בחירת מצב לטיימר">
+              <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true" aria-label="מצב שינה">
+                <span class="mode-icon" aria-hidden="true">☾</span>
+                <span class="mode-text">שינה</span>
+              </button>
+              <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false" aria-label="מצב אמבטיה">
+                <span class="mode-icon" aria-hidden="true">♨</span>
+                <span class="mode-text">אמבטיה</span>
+              </button>
+              <button class="mode-choice" type="button" data-mode="daycare" aria-pressed="false" aria-label="הולכים לגן">
+                <span class="mode-icon" aria-hidden="true">⌂</span>
+                <span class="mode-text">גן</span>
+              </button>
+              <button class="mode-choice" type="button" data-mode="outBath" aria-pressed="false" aria-label="יוצאים מהאמבטיה">
+                <span class="mode-icon" aria-hidden="true">▤</span>
+                <span class="mode-text">מגבת</span>
+              </button>
+              <button class="mode-choice" type="button" data-mode="dress" aria-pressed="false" aria-label="להתלבש">
+                <span class="mode-icon" aria-hidden="true">◧</span>
+                <span class="mode-text">להתלבש</span>
+              </button>
+            </div>
           </div>
 
-          <div class="mode-picker" aria-label="בחירת מצב לטיימר">
-            <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true" aria-label="מצב שינה">
-              <span class="mode-icon" aria-hidden="true">☾</span>
-              <span class="mode-text">שינה</span>
-            </button>
-            <button class="mode-choice" type="button" data-mode="bath" aria-pressed="false" aria-label="מצב אמבטיה">
-              <span class="mode-icon" aria-hidden="true">♨</span>
-              <span class="mode-text">אמבטיה</span>
-            </button>
-            <button class="mode-choice" type="button" data-mode="daycare" aria-pressed="false" aria-label="הולכים לגן">
-              <span class="mode-icon" aria-hidden="true">⌂</span>
-              <span class="mode-text">גן</span>
-            </button>
-            <button class="mode-choice" type="button" data-mode="outBath" aria-pressed="false" aria-label="יוצאים מהאמבטיה">
-              <span class="mode-icon" aria-hidden="true">▤</span>
-              <span class="mode-text">מגבת</span>
-            </button>
-            <button class="mode-choice" type="button" data-mode="dress" aria-pressed="false" aria-label="להתלבש">
-              <span class="mode-icon" aria-hidden="true">◧</span>
-              <span class="mode-text">להתלבש</span>
-            </button>
-          </div>
-
-          <div class="minute-row" aria-label="שלוש דקות מחולקות לשלושה חלקים">
+          <div class="minute-row" aria-label="עשר שניות">
           </div>
         </section>
 
@@ -1077,6 +1168,8 @@
       const startPause = document.querySelector("#startPause");
       const reset = document.querySelector("#reset");
       const soundToggle = document.querySelector("#soundToggle");
+      const advancedToggle = document.querySelector("#advancedToggle");
+      const advancedPanel = document.querySelector("#advancedPanel");
       const timeChoices = [...document.querySelectorAll(".time-choice")];
       const modeChoices = [...document.querySelectorAll(".mode-choice")];
       const blockRow = document.querySelector(".minute-row");
@@ -1085,9 +1178,10 @@
       const countdownDots = document.querySelector("#countdownDots");
       const countdownDotEls = [...document.querySelectorAll(".countdown-dot")];
 
-      let totalSeconds = 180;
+      let totalSeconds = 10;
       let remaining = totalSeconds;
       let currentMode = "sleep";
+      let advancedOpen = false;
       let running = false;
       let timerId = null;
       let soundOn = true;
@@ -1338,6 +1432,12 @@
         soundOn = !soundOn;
         soundToggle.textContent = soundOn ? "צליל בסוף: פעיל" : "צליל בסוף: כבוי";
         if (soundOn) unlockSound();
+      });
+
+      advancedToggle.addEventListener("click", () => {
+        advancedOpen = !advancedOpen;
+        advancedToggle.setAttribute("aria-pressed", String(advancedOpen));
+        advancedPanel.classList.toggle("open", advancedOpen);
       });
 
       document.addEventListener("pointerdown", unlockSound, { once: true });

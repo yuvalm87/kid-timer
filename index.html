@@ -205,8 +205,15 @@
         max-width: 640px;
       }
 
+      .color-picker {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(108px, 150px));
+        gap: 10px;
+      }
+
       .time-choice,
-      .mode-choice {
+      .mode-choice,
+      .color-choice {
         min-height: 62px;
         border: 0;
         border-radius: 8px;
@@ -216,6 +223,22 @@
         cursor: pointer;
         font-size: clamp(1rem, 2.8vw, 1.24rem);
         font-weight: 950;
+      }
+
+      .color-choice {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+      }
+
+      .color-swatch {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--swatch);
+        border: 3px solid rgba(255, 255, 255, 0.94);
+        box-shadow: 0 3px 8px rgba(23, 50, 77, 0.16);
       }
 
       .mode-choice {
@@ -239,67 +262,12 @@
       }
 
       .time-choice[aria-pressed="true"],
-      .mode-choice[aria-pressed="true"] {
+      .mode-choice[aria-pressed="true"],
+      .color-choice[aria-pressed="true"] {
         background: var(--lemon);
         box-shadow:
           inset 0 0 0 4px rgba(255, 255, 255, 0.85),
           0 12px 22px rgba(199, 126, 28, 0.2);
-      }
-
-      .minute-row {
-        display: grid;
-        grid-template-columns: repeat(var(--block-count, 3), minmax(78px, 1fr));
-        gap: 12px;
-        max-width: 430px;
-      }
-
-      .minute-block {
-        min-height: 106px;
-        border-radius: 8px;
-        display: grid;
-        place-items: center;
-        position: relative;
-        overflow: hidden;
-        background: rgba(255, 255, 255, 0.75);
-        border: 4px solid rgba(255, 255, 255, 0.85);
-        box-shadow: 0 12px 24px rgba(33, 71, 104, 0.12);
-        transition:
-          transform 250ms ease,
-          filter 250ms ease,
-          opacity 250ms ease;
-      }
-
-      .minute-block::before {
-        content: "";
-        position: absolute;
-        inset: auto 0 0;
-        height: var(--fill, 100%);
-        background: var(--tone);
-        transition: height 400ms linear;
-      }
-
-      .minute-block.done {
-        transform: translateY(-2px);
-      }
-
-      .minute-label {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        place-items: center;
-        gap: 2px;
-        color: #123047;
-        text-align: center;
-        font-weight: 950;
-      }
-
-      .minute-label strong {
-        font-size: 2.7rem;
-        line-height: 1;
-      }
-
-      .minute-label span {
-        font-size: 1rem;
       }
 
       .timer-stage {
@@ -593,7 +561,7 @@
       }
 
       .road-progress {
-        stroke: var(--lemon);
+        stroke: var(--timer-color, var(--peach));
         stroke-width: 30;
         stroke-dasharray: 100;
         stroke-dashoffset: var(--road-left, 100);
@@ -764,14 +732,45 @@
         gap: 18px;
       }
 
+      .timer-ring {
+        width: clamp(180px, 28vw, 250px);
+        aspect-ratio: 1;
+        position: relative;
+        display: grid;
+        place-items: center;
+      }
+
+      .timer-ring svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        transform: rotate(-90deg);
+        overflow: visible;
+      }
+
+      .ring-track,
+      .ring-progress {
+        fill: none;
+        stroke-width: 9;
+      }
+
+      .ring-track {
+        stroke: rgba(23, 50, 77, 0.16);
+      }
+
+      .ring-progress {
+        stroke: var(--timer-color, var(--peach));
+        stroke-linecap: round;
+        stroke-dasharray: 100;
+        stroke-dashoffset: var(--ring-left, 0);
+        transition: stroke-dashoffset 500ms linear;
+      }
+
       .time {
-        min-width: 178px;
-        border-radius: 8px;
-        background: var(--ink);
-        color: white;
+        color: var(--ink);
         text-align: center;
-        padding: 12px 18px 16px;
-        font-size: clamp(2.5rem, 8vw, 5rem);
+        font-size: clamp(2.7rem, 7vw, 4.8rem);
         line-height: 1;
         font-weight: 950;
         font-variant-numeric: tabular-nums;
@@ -935,8 +934,8 @@
           gap: 12px;
         }
 
-        .time {
-          min-width: 0;
+        .timer-ring {
+          margin: 0 auto;
         }
       }
 
@@ -988,6 +987,18 @@
               <button class="time-choice" type="button" data-seconds="180" aria-pressed="false">3 דקות</button>
             </div>
 
+            <p class="panel-label">בחירת צבע לטיימר</p>
+            <div class="color-picker" aria-label="בחירת צבע לטיימר">
+              <button class="color-choice" type="button" data-color="orange" aria-pressed="true">
+                <span class="color-swatch" style="--swatch: #ffb47c" aria-hidden="true"></span>
+                <span>כתום</span>
+              </button>
+              <button class="color-choice" type="button" data-color="blue" aria-pressed="false">
+                <span class="color-swatch" style="--swatch: #3f8fd7" aria-hidden="true"></span>
+                <span>כחול</span>
+              </button>
+            </div>
+
             <p class="panel-label">בחירת פעולה</p>
             <div class="mode-picker" aria-label="בחירת מצב לטיימר">
               <button class="mode-choice" type="button" data-mode="sleep" aria-pressed="true" aria-label="מצב שינה">
@@ -1013,8 +1024,6 @@
             </div>
           </div>
 
-          <div class="minute-row" aria-label="עשר שניות">
-          </div>
         </section>
 
         <section class="timer-stage" aria-label="טיימר פעיל">
@@ -1049,7 +1058,13 @@
           </div>
 
           <div class="readout">
-            <div class="time" id="time" aria-live="polite">3:00</div>
+            <div class="timer-ring" aria-label="זמן שנותר">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="ring-track" cx="60" cy="60" r="53"></circle>
+                <circle class="ring-progress" id="ringProgress" pathLength="100" cx="60" cy="60" r="53"></circle>
+              </svg>
+              <div class="time" id="time" aria-live="polite">0:10</div>
+            </div>
             <div>
               <p class="status" id="status">מוכנים להתחיל?</p>
               <div class="countdown-dots" id="countdownDots" aria-hidden="true">
@@ -1172,15 +1187,17 @@
       const advancedPanel = document.querySelector("#advancedPanel");
       const timeChoices = [...document.querySelectorAll(".time-choice")];
       const modeChoices = [...document.querySelectorAll(".mode-choice")];
-      const blockRow = document.querySelector(".minute-row");
+      const colorChoices = [...document.querySelectorAll(".color-choice")];
       const roadStations = document.querySelector(".road-stations");
       const kidLabel = document.querySelector("#kidLabel");
+      const ringProgress = document.querySelector("#ringProgress");
       const countdownDots = document.querySelector("#countdownDots");
       const countdownDotEls = [...document.querySelectorAll(".countdown-dot")];
 
       let totalSeconds = 10;
       let remaining = totalSeconds;
       let currentMode = "sleep";
+      let timerColor = "orange";
       let advancedOpen = false;
       let running = false;
       let timerId = null;
@@ -1216,25 +1233,6 @@
         };
       }
 
-      function renderBlocks() {
-        const option = options[totalSeconds];
-        blockRow.style.setProperty("--block-count", option.blocks.length);
-        blockRow.setAttribute("aria-label", option.aria);
-        blockRow.innerHTML = option.blocks
-          .map((label, index) => {
-            const tone = ["var(--mint)", "var(--peach)", "var(--lemon)"][index] || "var(--mint)";
-            const text = label === "10" ? "שניות" : label === "חצי" ? "דקה" : Number(label) === 1 ? "דקה" : "דקות";
-            return `
-              <div class="minute-block" style="--tone: ${tone}; --fill: 0%" data-minute="${index}">
-                <div class="minute-label">
-                  <strong>${label}</strong>
-                  <span>${text}</span>
-                </div>
-              </div>`;
-          })
-          .join("");
-      }
-
       function renderStations() {
         const option = options[totalSeconds];
         roadStations.innerHTML = option.blocks
@@ -1263,7 +1261,6 @@
           choice.setAttribute("aria-pressed", String(Number(choice.dataset.seconds) === seconds));
         });
         refreshCopy();
-        renderBlocks();
         renderStations();
         update();
       }
@@ -1340,17 +1337,8 @@
         const carPoint = roadPoint(elapsed);
         visual.style.setProperty("--road-left", `${100 - elapsed * 100}`);
         visual.style.setProperty("--runner-left", `${carPoint.x}%`);
+        ringProgress.style.setProperty("--ring-left", `${100 - progress * 100}`);
         timeEl.textContent = formatTime(remaining);
-
-        const blocks = [...document.querySelectorAll(".minute-block")];
-        const elapsedSeconds = totalSeconds - remaining;
-        const blockSeconds = totalSeconds / blocks.length;
-        blocks.forEach((block, index) => {
-          const blockStart = index * blockSeconds;
-          const fill = Math.min(100, Math.max(0, ((elapsedSeconds - blockStart) / blockSeconds) * 100));
-          block.style.setProperty("--fill", `${fill}%`);
-          block.classList.toggle("done", fill === 100);
-        });
 
         const stations = [...document.querySelectorAll(".station")];
         stations.forEach((station, index) => {
@@ -1428,6 +1416,16 @@
         });
       });
 
+      colorChoices.forEach((choice) => {
+        choice.addEventListener("click", () => {
+          timerColor = choice.dataset.color;
+          app.style.setProperty("--timer-color", timerColor === "blue" ? "#3f8fd7" : "#ffb47c");
+          colorChoices.forEach((colorChoice) => {
+            colorChoice.setAttribute("aria-pressed", String(colorChoice === choice));
+          });
+        });
+      });
+
       soundToggle.addEventListener("click", () => {
         soundOn = !soundOn;
         soundToggle.textContent = soundOn ? "צליל בסוף: פעיל" : "צליל בסוף: כבוי";
@@ -1444,7 +1442,6 @@
 
       refreshCopy();
       renderStations();
-      renderBlocks();
       update();
     </script>
   </body>
